@@ -1,0 +1,23 @@
+Q1:
+
+The "make" command calls "gcc -o hellomake hellomake.c hellofunc.c -I. -Wall" on the command line.
+This creates the executable file, "hellomake".
+The program can then be run by calling "./hellomake".
+
+
+Q2a:
+
+The output is:
+gcc -Wall -I.   -c -o hellomake.o hellomake.c
+gcc -Wall -I.   -c -o hellofunc.o hellofunc.c
+gcc -o hellomake hellomake.o hellofunc.o -Wall -I.
+
+
+Q2b:
+
+The executable file "hellomake" is created, along with the .o files for the project.
+
+
+Q3:
+
+The output is "make: `hellomake' is up to date."
