@@ -7,6 +7,7 @@ typedef struct process {
 	int arrival;
   int duration;
   struct process* next;
+  struct process* prev;
 } Process;
 
 typedef struct processlist {
@@ -15,14 +16,16 @@ typedef struct processlist {
 
 Process* mallocProcess();
 Process* createProcess(char* user, char* process, int arrival, int duration);
-void printProcess(Process* p);
+void printProcess(Process* p, int time);
 void decrementDuration(Process* p);
+void insertProcess(Process* current, Process* p);
 
 ProcessList* mallocProcessList();
 void addProcess(ProcessList* pl, Process* p);
-void removeHead(ProcessList* pl);
-Process* getHead(ProcessList* pl);
 bool isEmpty(ProcessList* pl);
-void printProcessList(ProcessList* p);
+//void printProcessList(ProcessList* p);
+Process* findReadyProcess(ProcessList* pl, int time);
+void runProcess(ProcessList* pl, int time);
+void removeProcess(ProcessList* pl, Process* p);
 
 #endif
