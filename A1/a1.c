@@ -1,32 +1,32 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #include "Process.h"
+#include "Summary.h"
 
 int main(void) {
-  Process* io[4];
-  io[0] = createProcess("Jim", "A", 2, 5);
-  io[1] = createProcess("Mary", "B", 2, 3);
-  io[2] = createProcess("Sue", "D", 5, 5);
-  io[3] = createProcess("Mary", "C", 6, 2);
+  SummaryList* summaryList = mallocSummaryList();
   ProcessList* list = mallocProcessList();
+
+  char* input = scanf("%s");
+  printf()
 
   printf("Time\tJob\n");
   int time = 0;
   do {
-    if(time<4) {
-      addProcess(list, io[time]);
-    }
-    runProcess(list, time);
+    addProcess(list, io[time]);
+    addSummary(summaryList, runProcess(list, time));
     time++;
   } while(!isEmpty(list));
 
-  printf("%d\tIDLE\n", time);
+  printf("%d\tIDLE\n\n", time);
+  printSummaryList(summaryList);
 }
 
 //allocates memory for a Process
 Process* mallocProcess() {
-  Process* p = malloc(sizeof(Process)+sizeof(char*)*2+sizeof(int)*2+sizeof(Process*));
+  Process* p = malloc(sizeof(Process)+sizeof(char*)*2+sizeof(int)*2+sizeof(Process*)*2);
   if(p==NULL) return NULL;
   p->next = NULL;
   return p;
@@ -46,6 +46,9 @@ Process* createProcess(char* user, char* process, int arrival, int duration) {
 void printProcess(Process* p, int time) {
   if(p != NULL) {
     printf("%d\t%s\n", time, p->process);
+  }
+  else {
+    printf("%d\tIDLE\n", time);
   }
 }
 
@@ -138,11 +141,73 @@ Process* findReadyProcess(ProcessList* pl, int time) {
   return current;
 }
 
-void runProcess(ProcessList* pl, int time) {
+struct summary* runProcess(ProcessList* pl, int time) {
+  Summary* output = NULL;
   Process* ready = findReadyProcess(pl, time);
   printProcess(ready, time);
   if(ready != NULL) {
     decrementDuration(ready);
-    if(ready->duration == 0) removeProcess(pl, ready);
+    if(ready->duration == 0) {
+      removeProcess(pl, ready);
+      output = createSummary(ready, time);
+    }
   }
+  return output;
+}
+
+Summary* mallocSummary() {
+  Summary* s = malloc(sizeof(Summary)+sizeof(char*)+sizeof(int)+sizeof(Summary*));
+  if(s==NULL) return NULL;
+  s->next = NULL;
+  return s;
+}
+
+//creates a Process with the given data
+Summary* createSummary(struct process* p, int time) {
+  Summary* s = mallocSummary();
+  s->user = p->user;
+  s->total = time + 1;
+  return s;
+}
+
+void addToTotal(Summary* total, Summary* pToAdd) {
+  total->total = pToAdd->total;
+}
+
+//allocates memory for a ProcessList
+SummaryList* mallocSummaryList() {
+  SummaryList* sl = malloc(sizeof(SummaryList)+sizeof(Summary*));
+  return sl;
+}
+
+void addSummary(SummaryList* sl, Summary* s) {
+  if(s==NULL) {
+    return;
+  }
+  Summary* current = sl->head;
+  if(current == NULL) {
+    sl->head = s;
+  }
+  while(current != NULL) {
+    if(!strcmp(current->user, s->user)) {
+      addToTotal(current, s);
+      return;
+    }
+    else if(current->next == NULL) {
+      current->next = s;
+      return;
+    }
+    current = current->next;
+  }
+}
+
+void printSummaryList(SummaryList* sl) {
+  printf("Summary\n");
+
+  Summary* current = sl->head;
+  while(current != NULL){
+    printf("%s\t%d\n", current->user, current->total);
+    current = current->next;
+  }
+  printf("\n");
 }

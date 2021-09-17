@@ -25,7 +25,7 @@ void addProcess(ProcessList* pl, Process* p);
 bool isEmpty(ProcessList* pl);
 //void printProcessList(ProcessList* p);
 Process* findReadyProcess(ProcessList* pl, int time);
-void runProcess(ProcessList* pl, int time);
+struct summary* runProcess(ProcessList* pl, int time);
 void removeProcess(ProcessList* pl, Process* p);
 
 #endif

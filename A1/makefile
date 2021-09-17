@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall
-DEPS=Process.h
+DEPS=Process.h Summary.h
 OBJS=a1.o
 EXE=a1
 
