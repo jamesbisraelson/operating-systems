@@ -7,15 +7,26 @@
 
 int main(void) {
   SummaryList* summaryList = mallocSummaryList();
-  ProcessList* list = mallocProcessList();
 
-  char* input = scanf("%s");
-  printf()
+  Process* io[5];
+  io[0] = createProcess("Jim", "A", 2, 5);
+  io[1] = createProcess("Mary", "B", 2, 3);
+  io[2] = createProcess("Sue", "D", 5, 5);
+  io[3] = createProcess("Mary", "C", 6, 2);
+  io[4] = createProcess("Johnny", "E", 19, 5);
+
+  addSummary(summaryList, createSummary(io[0], 0));
+  addSummary(summaryList, createSummary(io[1], 0));
+  addSummary(summaryList, createSummary(io[2], 0));
+  addSummary(summaryList, createSummary(io[3], 0));
+  ProcessList* list = mallocProcessList();
 
   printf("Time\tJob\n");
   int time = 0;
   do {
-    addProcess(list, io[time]);
+    if(time<5) {
+      addProcess(list, io[time]);
+    }
     addSummary(summaryList, runProcess(list, time));
     time++;
   } while(!isEmpty(list));
