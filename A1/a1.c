@@ -33,6 +33,8 @@ int main(void) {
 
   printf("%d\tIDLE\n\n", time);
   printSummaryList(summaryList);
+
+  return 0;
 }
 
 //allocates memory for a Process
