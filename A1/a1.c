@@ -6,27 +6,43 @@
 #include "Summary.h"
 
 int main(void) {
-  SummaryList* summaryList = mallocSummaryList();
 
-  Process* io[5];
+  Process* io[4];
   io[0] = createProcess("Jim", "A", 2, 5);
   io[1] = createProcess("Mary", "B", 2, 3);
   io[2] = createProcess("Sue", "D", 5, 5);
   io[3] = createProcess("Mary", "C", 6, 2);
-  io[4] = createProcess("Johnny", "E", 19, 5);
 
-  addSummary(summaryList, createSummary(io[0], 0));
-  addSummary(summaryList, createSummary(io[1], 0));
-  addSummary(summaryList, createSummary(io[2], 0));
-  addSummary(summaryList, createSummary(io[3], 0));
+  int i=0;
+
   ProcessList* list = mallocProcessList();
+  SummaryList* summaryList = mallocSummaryList();
+
+  /*char process[100];
+  char user[100];
+  int arrival;
+  int duration;
+  scanf("%*s%*s%*s%*s");
+
+  //Somewhere in between this while loop and the next for loop, the
+  //input gets broken. My SJF algorithm works if I create each process manually,
+  //like it is currently, but for some reason I cannot get input to work
+  //from stdin. I know it has to do with memory, but I can't figure it out.
+
+  while(scanf("%s%s%d%d", user, process, &arrival, &duration) != EOF) {
+    //printf("%s%s%d%d", user, process, arrival, duration);
+    io[i] = createProcess(user, process, arrival, duration);
+    printProcess(io[i], i);
+    i++;
+  }*/
+
+  for(i=0; i<4; i++) {
+    addProcess(list, io[i]);
+  }
 
   printf("Time\tJob\n");
   int time = 0;
   do {
-    if(time<5) {
-      addProcess(list, io[time]);
-    }
     addSummary(summaryList, runProcess(list, time));
     time++;
   } while(!isEmpty(list));
@@ -59,9 +75,6 @@ Process* createProcess(char* user, char* process, int arrival, int duration) {
 void printProcess(Process* p, int time) {
   if(p != NULL) {
     printf("%d\t%s\n", time, p->process);
-  }
-  else {
-    printf("%d\tIDLE\n", time);
   }
 }
 
