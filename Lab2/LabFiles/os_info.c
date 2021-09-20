@@ -42,6 +42,12 @@ int main (){
     fclose (fp);
     printf("Release: %s", info);
    }
-  
+  fp = fopen("/proc/sys/kernel/hostname", "r");
+  if(fp == NULL)
+    printf("file open failed\n");
+  else{
+    fgets(info, BUFSIZE, fp);
+    printf("Hostname: %s", info);
+   }
   return 0;
 }// main
