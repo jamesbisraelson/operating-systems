@@ -24,11 +24,11 @@ int main(int argc, char* argv[]) {
 		char* arg_arr[ARGNUM];
 		tokenize_to_array(arg_arr, ARGNUM, buffer, DELIM);
 	
-		/*int i;
+		int i;
 		for(i=0; i<ARGNUM; i++) {
 			if(arg_arr[i] == NULL) break;
 			printf("%s\n", arg_arr[i]);
-		}*/
+		}
 		
 		//check for & run internal commands
 		if(!strcmp(arg_arr[0], "exit")) {
@@ -37,14 +37,14 @@ int main(int argc, char* argv[]) {
 		}
 		else if(!strcmp(arg_arr[0], "cd")) {
 			error = chdir(arg_arr[1]);
-			if(error) {
+			if(error != 0) {
 				printf("Error: The directory was not found.\n");
 			}
 		}
 		//else run system commands
 		else {
 			error = run_cmds(arg_arr, ARGNUM);
-			if(error) {
+			if(error != 0) {
 				printf("Error: The system command could not be run.\n");
 			}
 		}	

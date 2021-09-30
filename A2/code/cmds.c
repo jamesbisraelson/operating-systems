@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include "cmds.h"
 
 #define CWDBUF 256
@@ -14,19 +15,14 @@ int run_cmds(char** arg_arr, const int arg_size) {
 		wait(NULL);
 	}
 	else {
-		int i, j;
-		char* cmd;
-		char* arguments = malloc(arg_size * sizeof(char*));
-		for(i=0, j=0; i<arg_size; i++) {
-			if(cmd == NULL) {
-				cmd = arg_arr[i];
-			}
-			else {
-				arguments[j] = arg_arr[i];
-				j++;
-			}
-
-			if(!strcmp(arg_arr[i], PIPE)) {
+		char* cmd = arg_arr[0];
+		//char* arguments = malloc(arg_size * sizeof(char*));
+		return_code = execvp(cmd, arg_arr);
+		if(return_code == 0) {
+			printf("Error: Could not execute %s", cmd);
+			return -1;
+		}
+			/*if(!strcmp(arg_arr[i], PIPE)) {
 				return_code = execvp(cmd, arguments);
 				if(return_code == 0) {
 					printf("Error: Could not execute %s", cmd);
@@ -35,8 +31,7 @@ int run_cmds(char** arg_arr, const int arg_size) {
 				j = 0;
 				free(arguments);
 				arguments = malloc(arg_size * sizeof(char*));
-			}
-		}
+			}*/
 	}
 	return 0;
 }
