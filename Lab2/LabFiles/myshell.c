@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <sys/wait.h>
 #define BUFSIZE 81
 
 int main(int argc, char*argv[]) {
@@ -38,4 +38,5 @@ int main(int argc, char*argv[]) {
     printf("> ");
     cmd = fgets(buffer, BUFSIZE, stdin);
   }
+  return 0;
 }
