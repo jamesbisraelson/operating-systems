@@ -10,11 +10,21 @@
 #define PIPEDELIM "|"
 #define SPACEDELIM " "
 
+/*
+ * function: tokenize_to_array
+ * ---------------------------
+ * splits a string into tokens and stores each token in an array.
+ *
+ * token_num: length of token_arr
+ * token_arr: the array in which to store the tokens
+ * str_in: the string to be split
+ * delim: the delimiter used to split the string
+ */
 void tokenize_to_array(const int token_num, char* token_arr[token_num], char* str_in, char* delim) {
 	char* token;
 	char* save_ptr;
 	int i;
-
+	
 	for(i=0; i<token_num; i++) {
 		token = strtok_r(str_in, delim, &save_ptr);
 		str_in = NULL;
@@ -22,6 +32,7 @@ void tokenize_to_array(const int token_num, char* token_arr[token_num], char* st
 		token_arr[i] = token;
 	}
 }
+
 
 void get_cmd_table(const int cmds_num, const int args_num, char* cmds_arr[cmds_num][args_num], char* str_in) {
 	char* token_arr[cmds_num];
