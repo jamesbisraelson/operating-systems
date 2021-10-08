@@ -9,8 +9,7 @@
 #define ARGNUM 100
 #define CMDNUM 100
 #define BUFSIZE 2048
-#define SPACEDELIM " "
-#define PIPEDELIM "|"
+
 
 int main(int argc, char* argv[]) {
 	char* buf_in;
@@ -27,27 +26,24 @@ int main(int argc, char* argv[]) {
 		}
 
 		//tokenize input to array
-		char* tokens[CMDNUM];
-
-		tokenize_to_array(CMDNUM, tokens, buffer, PIPEDELIM);
+		char* cmds[CMDNUM][ARGNUM];
+		get_cmd_table(CMDNUM, ARGNUM, cmds, buffer);
 
 		//check for & run internal commands
-		if(!strcmp(tokens[0], "exit")) {
+		if(!strcmp(cmds[0][0], "exit")) {
 			printf("Goodbye.\n");
 			return 0;
 		}
-		else if(!strncmp(tokens[0], "cd", 2)) {// the length of the "cd" command is 2
-			char* cd[2];//a cd command should only have two arguments, "cd" and the directory
-			tokenize_to_array(2, cd, tokens[0], SPACEDELIM);
-			error = chdir(cd[1]);//i don't think these count as magic numbers. sue me.
+		else if(!strcmp(cmds[0][0], "cd")) {
+			error = chdir(cmds[0][1]);
 			if(error != 0) {
-				printf("Error: The directory '%s' was not found.\n", cd[1]);
+				printf("Error: The directory '%s' was not found.\n", cmds[0][1]);
 			}
 		}
 
 		//else run system commands
 		else {
-			run_cmds(CMDNUM, tokens, ARGNUM, SPACEDELIM);
+			run_cmd_pipeline(CMDNUM, ARGNUM, cmds);
 		}
 		prompt();
 		buf_in = fgets(buffer, BUFSIZE, stdin);

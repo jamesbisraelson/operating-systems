@@ -3,98 +3,81 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include "cmds.h"
 
 #define CWDBUF 256
-
-int get_piped_arr(char** arg_arr, const int arg_arr_size) {
-	int i, num_pipes;
-	for(i=0, num_pipes=0; i<arg_arr_size; i++) {
-		if(!strcmp(arg_arr[i], "|")) {
-			arg_arr[i] = NULL;
-			num_pipes++;
-		}
-	}
-	return num_pipes;
-}
-
-int run_cmds(const int cmds_num, char* cmds_arr[], const int args_num, char* delim) {
-	return run_cmds_recursive(0, STDIN_FILENO, cmds_num, cmds_arr, args_num, delim);
-}
-
-int run_cmds_recursive(int index, int pipein, const int cmds_num, char* cmds_arr[], const int args_num, char* delim) {
-	char* args_arr[args_num];
-	tokenize_to_array(args_num, args_arr, cmds_arr[index], delim);
-
-	int pid = fork();
-	int pipeout[2];
-	pipe(pipeout);
-
-	if(pid == 0) {
-		if(index < cmds_num) {
-			//redirect pipein read to stdin
-			dup2(pipein, STDIN_FILENO);
-			
-			//create pipeout
-			close(pipeout[0]);
-	
-			//redirect stdout to pipeout
-			dup2(STDOUT_FILENO, pipeout[1]);
-			close(pipeout[1]);
-	
-			//execvp
-			execvp(args_arr[0], args_arr);
-			
-			//call the function recursively for the next command to be piped
-			index++;
-			return run_cmds_recursive(index, pipeout[1], cmds_num, cmds_arr, args_num, delim);
-		}
-		if(index == cmds_num) {	
-			//redirect pipein read to stdin
-			dup2(pipein, STDIN_FILENO);
-			close(pipein);
-	
-			//execvp
-			execvp(args_arr[0], args_arr);
-	
-			//all done
-			return 0;
-		}
-	}
-	else {
-		close(pipeout[0]);
-		close(pipeout[1]);
-		close(pipein);
-		wait(NULL);
-		if(pid == -1) {
-			perror("fork error");
-			exit(1);
-		}
-	}
-	return 1;
-}
+#define PIPEDELIM "|"
+#define SPACEDELIM " "
 
 void tokenize_to_array(const int token_num, char* token_arr[token_num], char* str_in, char* delim) {
 	char* token;
 	char* save_ptr;
-	int i=0;
+	int i;
 
-	token = strtok_r(str_in, delim, &save_ptr);
-	str_in = NULL;
-
-	while(i<token_num) {
-		token_arr[i] = token;
+	for(i=0; i<token_num; i++) {
 		token = strtok_r(str_in, delim, &save_ptr);
 		str_in = NULL;
+
+		token_arr[i] = token;
+	}
+}
+
+void get_cmd_table(const int cmds_num, const int args_num, char* cmds_arr[cmds_num][args_num], char* str_in) {
+	char* token_arr[cmds_num];
+	tokenize_to_array(cmds_num, token_arr, str_in, PIPEDELIM);
+	
+	int i = 0;
+	while(i<cmds_num) {
+		tokenize_to_array(args_num, cmds_arr[i], token_arr[i], SPACEDELIM);
 		i++;
 	}
 }
 
-void printtokens(const int token_num, char* token_arr[]) {
-	int i;
-	for(i=0; i<token_num; i++) {
-		if(token_arr[i]==NULL) break;
+void run_cmd_pipeline(const int cmds_num, const int args_num, char* cmds_arr[cmds_num][args_num]) {
+	int pipefd[2];
+	pid_t pid;
+	int fd_in = STDIN_FILENO;
+	
+	int i = 0;
+	while(cmds_arr[i][0] != NULL) {
+		pipe(pipefd);
+
+		if((pid=fork()) == -1) {
+			perror("fork error");
+			exit(1);
+		}
+		if(pid == 0) {//child
+			dup2(fd_in, STDIN_FILENO);
+			if(cmds_arr[i+1][0] != NULL) {
+				dup2(pipefd[1], STDOUT_FILENO);
+			}
+			close(fd_in);
+			execvp(cmds_arr[i][0], cmds_arr[i]);
+			exit(1);
+		}
+		else {//parent
+			wait(NULL);
+			close(pipefd[1]);
+			fd_in = pipefd[0];
+			i++;
+		}
+	}
+}
+
+void print_cmd_table(const int i_max, const int j_max, char* table[i_max][j_max]) {
+	int i = 0;
+	while(i<i_max && table[i] != NULL) {
+		print_tokens(j_max, table[i]);
+		i++;
+	}
+}
+
+void print_tokens(const int token_num, char* token_arr[token_num]) {
+	int i = 0;
+	while(i<token_num && token_arr[i] != NULL) {
 		printf("%s\n", token_arr[i]);
+		i++;
 	}
 }
 
