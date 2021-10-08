@@ -25,8 +25,10 @@ int run_cmds(const int cmds_num, char* cmds_arr[], const int args_num, char* del
 int run_cmds_recursive(int index, int pipein, const int cmds_num, char* cmds_arr[], const int args_num, char* delim) {
 	char* args_arr[args_num];
 	tokenize_to_array(args_num, args_arr, cmds_arr[index], delim);
-	
+
 	int pid = fork();
+	int pipeout[2];
+	pipe(pipeout);
 
 	if(pid == 0) {
 		if(index < cmds_num) {
@@ -34,8 +36,6 @@ int run_cmds_recursive(int index, int pipein, const int cmds_num, char* cmds_arr
 			dup2(pipein, STDIN_FILENO);
 			
 			//create pipeout
-			int pipeout[2];
-			pipe(pipeout);
 			close(pipeout[0]);
 	
 			//redirect stdout to pipeout
@@ -62,6 +62,8 @@ int run_cmds_recursive(int index, int pipein, const int cmds_num, char* cmds_arr
 		}
 	}
 	else {
+		close(pipeout[0]);
+		close(pipeout[1]);
 		close(pipein);
 		wait(NULL);
 		if(pid == -1) {
