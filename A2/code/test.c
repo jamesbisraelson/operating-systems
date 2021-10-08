@@ -3,6 +3,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
+#define PIPEDELIM "|"
+#define SPACEDELIM " "
+
 
 void tokenize_to_array(const int token_num, char* token_arr[token_num], char* str_in, char* delim) {
 	char* token;
@@ -17,23 +20,22 @@ void tokenize_to_array(const int token_num, char* token_arr[token_num], char* st
 	}
 }
 
-void get_commands(const int cmds_num, const int args_num, char* cmds_arr[cmds_num][args_num], char* token_arr[cmds_num], char* delim) {
-	int i=0;
-		
+void get_commands(const int cmds_num, const int args_num, char* cmds_arr[cmds_num][args_num], char* str_in) {
+	char* token_arr[cmds_num];
+	tokenize_to_array(cmds_num, token_arr, str_in, PIPEDELIM);
+	
+	int i = 0;
 	while(i<cmds_num && token_arr[i] != NULL) {
-		tokenize_to_array(args_num, cmds_arr[i], token_arr[i], delim);
+		tokenize_to_array(args_num, cmds_arr[i], token_arr[i], SPACEDELIM);
 		i++;
 	}
 }
 
 int main(int arc, char* argv[]) {
 	char command[] = "ls -A | grep c";
-	char* token_arr[10];
-
-	tokenize_to_array(10, token_arr, command, "|");
 	
 	char* cmds_arr[10][10];
-	get_commands(10, 10, cmds_arr, token_arr, " ");
+	get_commands(10, 10, cmds_arr, command);
 
 
 	int pipefd[2];
