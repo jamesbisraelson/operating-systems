@@ -47,9 +47,10 @@ void get_cmd_table(const int cmds_num, const int args_num, char* cmds_arr[cmds_n
 
 void run_cmd_pipeline(const int cmds_num, const int args_num, char* cmds_arr[cmds_num][args_num]) {
 	int pipefd[2];
-	pid_t pid;
+	pid_t pid, waitpid;
 	int fd_in = STDIN_FILENO;
-	
+	int status = 0;
+
 	int i = 0;
 	while(cmds_arr[i][0] != NULL) {
 		pipe(pipefd);
@@ -68,12 +69,13 @@ void run_cmd_pipeline(const int cmds_num, const int args_num, char* cmds_arr[cmd
 			exit(1);
 		}
 		else {//parent
-			wait(NULL);
 			close(pipefd[1]);
 			fd_in = pipefd[0];
 			i++;
 		}
 	}
+
+	while((waitpid = wait(&status)) > 0);
 }
 
 void print_cmd_table(const int i_max, const int j_max, char* table[i_max][j_max]) {
