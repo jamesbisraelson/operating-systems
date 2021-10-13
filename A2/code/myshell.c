@@ -8,7 +8,7 @@
 
 #define ARGNUM 100
 #define CMDNUM 100
-#define BUFSIZE 2048
+#define BUFSIZE 1023
 
 
 int main(int argc, char* argv[]) {

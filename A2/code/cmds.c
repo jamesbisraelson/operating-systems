@@ -24,7 +24,7 @@ void tokenize_to_array(const int token_num, char* token_arr[token_num], char* st
 	char* token;
 	char* save_ptr;
 	int i;
-	
+
 	for(i=0; i<token_num; i++) {
 		token = strtok_r(str_in, delim, &save_ptr);
 		str_in = NULL;
@@ -36,10 +36,10 @@ void tokenize_to_array(const int token_num, char* token_arr[token_num], char* st
 /*
  * function: get_cmd_table
  * -----------------------
- * takes in an string of commands piped together (using "|") 
+ * takes in an string of commands piped together (using "|")
  * and splits it into a 2d array of strings (cmds_arr) where each row
  * is for new pipe and each column is the command/argument string.
- * 
+ *
  * cmds_num: the max amount of commands in the string
  * args_num: the max amount of arguments per command
  * cmds_arr: the array in which to store the commands/arguments
@@ -48,7 +48,7 @@ void tokenize_to_array(const int token_num, char* token_arr[token_num], char* st
 void get_cmd_table(const int cmds_num, const int args_num, char* cmds_arr[cmds_num][args_num], char* str_in) {
 	char* token_arr[cmds_num];
 	tokenize_to_array(cmds_num, token_arr, str_in, PIPEDELIM);
-	
+
 	int i = 0;
 	while(i<cmds_num) {
 		tokenize_to_array(args_num, cmds_arr[i], token_arr[i], SPACEDELIM);
@@ -71,8 +71,7 @@ void run_cmd_pipeline(const int cmds_num, const int args_num, char* cmds_arr[cmd
 	int pipefd[2];
 	pid_t pid, waitpid;
 	int fd_in = STDIN_FILENO;
-	int status = 0;	
-	
+	int status = 0;
 	int i = 0;
 	while(cmds_arr[i][0] != NULL) {
 		//create pipe
