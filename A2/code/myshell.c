@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "cmds.h"
+#include "signal.h"
 
 #define ARGNUM 100
 #define CMDNUM 100
@@ -12,9 +13,14 @@
 
 
 int main(int argc, char* argv[]) {
+	void catch_signal(int);
+	signal(SIGTSTP, catch_signal);
+
 	char* buf_in;
 	char buffer[BUFSIZE];
 	int error = 0;
+	int sus_pid = 0;
+	int status;
 
 	prompt();
 	buf_in = fgets(buffer, BUFSIZE, stdin);
@@ -40,10 +46,33 @@ int main(int argc, char* argv[]) {
 				printf("Error: The directory '%s' was not found.\n", cmds[0][1]);
 			}
 		}
+		else if(!strcmp(cmds[0][0], "fg")) {
+			if(sus_pid == 0) {
+				printf("There is no job currently suspended.\n");
+			}
+			else {
+				kill(sus_pid, SIGCONT);
+				waitpid(sus_pid, &status, 0);
+				sus_pid = 0;
+			}
+		}
+		else if(!strcmp(cmds[0][0], "bg")) {
+			if(sus_pid == 0) {
+				printf("There is no job currently suspended\n");
+			}
+			else {
+				kill(sus_pid, SIGCONT);
+			}
+		}
 
 		//else run system commands
 		else {
-			run_cmd_pipeline(CMDNUM, ARGNUM, cmds);
+			if(sus_pid == 0) {
+				sus_pid = run_cmd_pipeline(CMDNUM, ARGNUM, cmds);
+			}
+			else {
+				printf("Not allowed to run a new command while you have a job active\n");
+			}
 		}
 		prompt();
 		buf_in = fgets(buffer, BUFSIZE, stdin);

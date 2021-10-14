@@ -67,9 +67,9 @@ void get_cmd_table(const int cmds_num, const int args_num, char* cmds_arr[cmds_n
  * args_num: the max amount of arguments (width of cmds_arr)
  * cmds_arr: the array in which the commands/arguments are stored
  */
-void run_cmd_pipeline(const int cmds_num, const int args_num, char* cmds_arr[cmds_num][args_num]) {
+int run_cmd_pipeline(const int cmds_num, const int args_num, char* cmds_arr[cmds_num][args_num]) {
 	int pipefd[2];
-	pid_t pid, waitpid;
+	pid_t pid, wpid;
 	int fd_in = STDIN_FILENO;
 	int status = 0;
 	int i = 0;
@@ -115,7 +115,13 @@ void run_cmd_pipeline(const int cmds_num, const int args_num, char* cmds_arr[cmd
 		}
 	}
 	//wait until all the children are done
-	while((waitpid = wait(&status)) > 0);
+	while((wpid = waitpid(-1, &status, WUNTRACED)) > 0) {
+		if(WIFSTOPPED(status)) {
+			printf("The job was suspended. Type 'fg' to resume.\n");
+			return wpid;
+		}
+	}
+	return 0;
 }
 
 /*
