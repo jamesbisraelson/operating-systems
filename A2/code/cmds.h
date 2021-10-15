@@ -1,3 +1,8 @@
+/*
+ * file: cmds.h
+ * ------------
+ * the associated .h file for cmds.c
+ */
 #ifndef CMDS_H
 #define CMDS_H
 

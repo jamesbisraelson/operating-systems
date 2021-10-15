@@ -1,3 +1,8 @@
+/*
+ * file: myshell.c
+ * ---------------
+ * defines the main function for myshell
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,12 +10,12 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "cmds.h"
-#include "signal.h"
+#include "printing.h"
+#include "signals.h"
 
 #define ARGNUM 100
 #define CMDNUM 100
 #define BUFSIZE 1023
-
 
 int main(int argc, char* argv[]) {
 	void catch_signal(int);
@@ -20,7 +25,7 @@ int main(int argc, char* argv[]) {
 	char buffer[BUFSIZE];
 	int error = 0;
 	int sus_pid = 0;
-	int status;
+	//int status;
 
 	prompt();
 	buf_in = fgets(buffer, BUFSIZE, stdin);
@@ -52,8 +57,8 @@ int main(int argc, char* argv[]) {
 			}
 			else {
 				kill(sus_pid, SIGCONT);
-				waitpid(sus_pid, &status, 0);
-				sus_pid = 0;
+				sus_pid = -1;
+				wait(NULL);
 			}
 		}
 		else if(!strcmp(cmds[0][0], "bg")) {
