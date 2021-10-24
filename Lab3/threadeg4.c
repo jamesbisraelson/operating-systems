@@ -16,6 +16,7 @@
 
 
 // shared data
+pthread_mutex_t mutex;
 int shared = 0;
 
 
@@ -25,6 +26,7 @@ void *thrfunc(void *dummy){
   pthread_t myID = pthread_self();
   printf("Hi, I am thread <%d>.\n", myID);
   
+  pthread_mutex_lock(&mutex);
   for(i = 0; i < MAX; i++){
     temp = shared;
     busy = random() % BUSY_WORK;
@@ -32,16 +34,22 @@ void *thrfunc(void *dummy){
       foo += 3.14159;
     shared = temp + 1;
   }
-  
+  pthread_mutex_unlock(&mutex);
+
   pthread_exit(NULL);
 } // end thrfunc
 
 
 int main (int argc, char * argv[]){
-
    pthread_t threads[NUM_THREADS];
-   int rc, t;
+   int rc, t, m;
    
+   //initialize mutex
+   m = pthread_mutex_init(&mutex, NULL);
+   if(m) {
+	   printf("mutex init error");
+   }
+
    // initialize the random number generator
    srandom(time(NULL));
 
@@ -61,5 +69,5 @@ int main (int argc, char * argv[]){
    printf("\nThe value of the shared variable is: %d\n", shared);
    printf("\nEnd of processing\n");
    pthread_exit(NULL);
-   
+   pthread_mutex_destroy(&mutex);
 } // end main
