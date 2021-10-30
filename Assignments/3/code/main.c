@@ -1,9 +1,9 @@
-
 #include <stdio.h>
-#include "example.h" 
+#include "centipede.h" 
 
 int main(int argc, char**argv) 
 {
-	exampleRun();
+	centipedeRun();
 	printf("done!\n");
+	return 0;
 }
