@@ -1,30 +1,45 @@
+#include <stdlib.h>
+#include <pthread.h>
+
 #include "centipede.h"
+#include "console.h"
+#include "gameglobals.h"
+#include "player.h"
 
 pthread_mutex_t screenMutex;
+pthread_mutex_t gameOverMutex;
+pthread_cond_t gameOverCond;
 pthread_t screenThread;
+pthread_t playerThread;
 
 void centipedeRun() {
-	wrappedMutexInit(&screenMutex, NULL);	
-	wrappedPthreadCreate(&screenThread, NULL, screenRefresh, NULL);
-	
+
 	if(consoleInit(GAME_ROWS, GAME_COLS, GAME_BOARD)) {
-		int i = 0;
-		while(i < 6) {
-			char** ship = SHIP[i%2];
-			wrappedMutexLock(&screenMutex);
-			consoleClearImage(20, 38+i-1, SHIP_HEIGHT, SHIP_WIDTH);
-			consoleDrawImage(20, 38+i, ship, SHIP_HEIGHT);
-			wrappedMutexUnlock(&screenMutex);
-			sleepTicks(10);
-			i++;
-		}
+		wrappedMutexInit(&screenMutex, NULL);	
+		wrappedMutexInit(&gameOverMutex, NULL);
+		wrappedPthreadCreate(&screenThread, NULL, screenRefresh, NULL);
+		wrappedPthreadCreate(&playerThread, NULL, runPlayer, NULL);
+		
+		wrappedMutexLock(&gameOverMutex);	
+		wrappedCondWait(&gameOverCond, &gameOverMutex);
+		wrappedMutexUnlock(&gameOverMutex);
+		wrappedMutexLock(&screenMutex);
 		finalKeypress();
+		consoleFinish();
+		wrappedMutexUnlock(&screenMutex);
+		wrappedPthreadJoin(screenThread, NULL);
+		wrappedPthreadJoin(playerThread, NULL);
 	}
-	consoleFinish();
 }
 
 void* screenRefresh(void* dummy) {
 	while(true) {
+		wrappedMutexLock(&gameOverMutex);
+		if(gameOver) {
+			wrappedMutexUnlock(&gameOverMutex);
+			pthread_exit(NULL);
+		}
+		wrappedMutexUnlock(&gameOverMutex);
 		wrappedMutexLock(&screenMutex);
 		consoleRefresh();
 		wrappedMutexUnlock(&screenMutex);

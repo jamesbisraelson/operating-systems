@@ -5,6 +5,11 @@
 #define SHIP_WIDTH 4
 #define SHIP_ANIM_TILES 2
 
+#include "threadwrappers.h"
+#include "console.h"
+#include "gameglobals.h"
+#include "centipede.h"
+
 extern const char* SHIP[SHIP_ANIM_TILES][SHIP_HEIGHT];
 
 struct player_struct {
@@ -19,5 +24,7 @@ struct player_struct {
 	//pthread_t thread;
 	//pthread_mutex_t mutex;
 } player;
+
+void* runPlayer(void* dummy);
 
 #endif

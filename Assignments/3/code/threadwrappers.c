@@ -13,12 +13,24 @@ int wrappedPthreadCreate(pthread_t* thread, const pthread_attr_t* attr, void* (*
 	return statusCheck(pthread_create(thread, attr, start_routine, arg));
 }
 
-//int wrappedPthreadJoin(pthread_t thread, void** retval);
-//int wrappedCondSignal(pthread_cond_t* cond);
-//int wrappedCondWait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+int wrappedPthreadJoin(pthread_t thread, void** retval) {
+	return statusCheck(pthread_join(thread, retval));
+}
+
+int wrappedCondSignal(pthread_cond_t* cond) {
+	return statusCheck(pthread_cond_signal(cond));
+}
+
+int wrappedCondWait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
+	return statusCheck(pthread_cond_wait(cond, mutex));
+}
 
 int wrappedMutexLock(pthread_mutex_t* mutex) {
 	return statusCheck(pthread_mutex_lock(mutex));
+}
+
+int wrappedMutexTrylock(pthread_mutex_t* mutex) {
+	return statusCheck(pthread_mutex_trylock(mutex));
 }
 
 int wrappedMutexUnlock(pthread_mutex_t* mutex) {
