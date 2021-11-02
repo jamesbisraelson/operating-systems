@@ -2,15 +2,17 @@
 #include <pthread.h>
 
 #include "centipede.h"
+#include "threadwrappers.h"
 #include "console.h"
 #include "gameglobals.h"
 #include "player.h"
+#include "keyboard.h"
 
 pthread_mutex_t screenMutex;
 pthread_mutex_t gameOverMutex;
 pthread_cond_t gameOverCond;
 pthread_t screenThread;
-pthread_t playerThread;
+pthread_t keyboardThread;
 
 void centipedeRun() {
 
@@ -18,8 +20,9 @@ void centipedeRun() {
 		wrappedMutexInit(&screenMutex, NULL);	
 		wrappedMutexInit(&gameOverMutex, NULL);
 		wrappedPthreadCreate(&screenThread, NULL, screenRefresh, NULL);
-		wrappedPthreadCreate(&playerThread, NULL, runPlayer, NULL);
-		
+		player* p = spawnPlayer(22, 38, 3);
+		wrappedPthreadCreate(&keyboardThread, NULL, runKeyboard, p);
+
 		wrappedMutexLock(&gameOverMutex);	
 		wrappedCondWait(&gameOverCond, &gameOverMutex);
 		wrappedMutexUnlock(&gameOverMutex);
@@ -28,7 +31,7 @@ void centipedeRun() {
 		consoleFinish();
 		wrappedMutexUnlock(&screenMutex);
 		wrappedPthreadJoin(screenThread, NULL);
-		wrappedPthreadJoin(playerThread, NULL);
+		wrappedPthreadJoin(p->thread, NULL);
 	}
 }
 
