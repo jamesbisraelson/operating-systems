@@ -22,6 +22,8 @@ typedef struct player_struct {
 	int startRow;
 	int col;
 	int row;
+	int prevCol;
+	int prevRow;
 	bool running;
 	int lives;
 	int animTile;
@@ -30,6 +32,8 @@ typedef struct player_struct {
 	pthread_mutex_t mutex;
 } player;
 
+void nextAnim(player* p);
+void drawPlayer(player* p);
 void* runPlayer(void* data);
 void newPlayer(player* p);
 player* spawnPlayer(int startCol, int startRow, int lives);

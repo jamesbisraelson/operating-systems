@@ -2,9 +2,6 @@
 #define THREADWRAPPERS_H
 
 #include <pthread.h>
-#include <errno.h>
-#include <stdio.h>
-#include "threadwrappers.h"
 
 int wrappedMutexLock(pthread_mutex_t* mutex);
 int wrappedMutexTrylock(pthread_mutex_t* mutex);

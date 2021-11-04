@@ -3,6 +3,7 @@
 #include "console.h"
 #include "threadwrappers.h"
 
+
 bool gameOver = false;
 
 char *GAME_BOARD[] = {

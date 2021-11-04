@@ -19,8 +19,9 @@ void centipedeRun() {
 	if(consoleInit(GAME_ROWS, GAME_COLS, GAME_BOARD)) {
 		wrappedMutexInit(&screenMutex, NULL);	
 		wrappedMutexInit(&gameOverMutex, NULL);
-		wrappedPthreadCreate(&screenThread, NULL, screenRefresh, NULL);
+		
 		player* p = spawnPlayer(22, 38, 3);
+		wrappedPthreadCreate(&screenThread, NULL, screenRefresh, NULL);
 		wrappedPthreadCreate(&keyboardThread, NULL, runKeyboard, p);
 
 		wrappedMutexLock(&gameOverMutex);	
@@ -32,6 +33,7 @@ void centipedeRun() {
 		wrappedMutexUnlock(&screenMutex);
 		wrappedPthreadJoin(screenThread, NULL);
 		wrappedPthreadJoin(p->thread, NULL);
+		wrappedPthreadJoin(keyboardThread, NULL);
 	}
 }
 
