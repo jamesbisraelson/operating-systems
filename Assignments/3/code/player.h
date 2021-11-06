@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <pthread.h>
 
-#define SHIP_HEIGHT 5
-#define SHIP_WIDTH 5
+#define SHIP_HEIGHT 3
+#define SHIP_WIDTH 3
 #define SHIP_ANIM_TILES 2
 
 

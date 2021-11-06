@@ -12,22 +12,18 @@
 
 char* SHIP[SHIP_ANIM_TILES][SHIP_HEIGHT] = {
 {
-	" /|\\ ",
-	" | | ",
-	"/---\\",
-	" (   ",
-	"   ) "
+	"/-\\",
+	"o  ",
+	"  o"
 },
 {
-	" /|\\ ",
-	" | | ",
-	"/---\\",
-	"   ) ",
-	" (   "
+	"/-\\",
+	"  o",
+	"o  "
 }};
 
 void shootBullet(player* p) {
-	int bulletRow = p->row;
+	int bulletRow = p->row - 1;
 	//align the bullet to the front of the ship
 	int bulletCol = p->col + SHIP_WIDTH / 2;
 	spawnBullet(bulletRow, bulletCol, PLAYER);
