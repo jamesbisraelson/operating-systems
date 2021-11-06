@@ -4,6 +4,7 @@
 #include "console.h"
 #include "gameglobals.h"
 #include "centipede.h"
+#include "bullet.h"
 
 #define START_COL 20
 #define START_ROW 38
@@ -11,19 +12,27 @@
 
 char* SHIP[SHIP_ANIM_TILES][SHIP_HEIGHT] = {
 {
-	" /\\ ",
-	" || ",
-	"/--\\",
-	" (  ",
-	"  ) "
+	" /|\\ ",
+	" | | ",
+	"/---\\",
+	" (   ",
+	"   ) "
 },
 {
-	" /\\ ",
-	" || ",
-	"/--\\",
-	"  ) ",
-	" (  "
+	" /|\\ ",
+	" | | ",
+	"/---\\",
+	"   ) ",
+	" (   "
 }};
+
+void shootBullet(player* p) {
+	int bulletRow = p->row;
+	//align the bullet to the front of the ship
+	int bulletCol = p->col + SHIP_WIDTH / 2;
+	spawnBullet(bulletRow, bulletCol, PLAYER);
+	//TODO: join bullet after it dies
+}
 
 void* runPlayer(void* data) {
 	player* p = (player*)data;
@@ -35,13 +44,10 @@ void* runPlayer(void* data) {
 		nextAnim(p);
 		
 		//if the game is over, free the player memory
-		wrappedMutexLock(&gameOverMutex);
-		if(gameOver) {
-			wrappedMutexUnlock(&gameOverMutex);
+		if(isGameOver()) {
 			free(p);
 			pthread_exit(NULL);
 		}
-		wrappedMutexUnlock(&gameOverMutex);
 		sleepTicks(PLAYER_TICKS);		
 	}
 	return NULL;

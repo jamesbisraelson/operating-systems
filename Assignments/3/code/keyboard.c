@@ -8,7 +8,6 @@
 #include "gameglobals.h"
 #include "console.h"
 
-#define KEY_TICKS 1
 
 void* runKeyboard(void* data) {
 	player* p = (player*)data;
@@ -18,27 +17,29 @@ void* runKeyboard(void* data) {
 		wrappedMutexLock(&screenMutex);
 		if(kbhit()) {
 			c = getch();
-				switch(c) {
-					case 'w':
-						movePlayer(p, -1, 0);
-						break;
-					case 'a':
-						movePlayer(p, 0, -1);
-						break;
-					case 's':
-						movePlayer(p, 1, 0);
-						break;
-					case 'd':
-						movePlayer(p, 0, 1);
-						break;
-					case 'q':
-						wrappedMutexUnlock(&screenMutex);
-						endGame();
+			switch(c) {
+				case 'w':
+					movePlayer(p, -1, 0);
+					break;
+				case 'a':
+					movePlayer(p, 0, -1);
+					break;
+				case 's':
+					movePlayer(p, 1, 0);
+					break;
+				case 'd':
+					movePlayer(p, 0, 1);
+					break;
+				case ' ':
+					shootBullet(p);
+					break;
+				case 'q':
+					wrappedMutexUnlock(&screenMutex);
+					endGame();
 			}
 			flushinp();
 		}
 		wrappedMutexUnlock(&screenMutex);
-		//sleepTicks(KEY_TICKS);
 	}
 }
 

@@ -7,6 +7,7 @@
 #include "gameglobals.h"
 #include "player.h"
 #include "keyboard.h"
+#include "bullet.h"
 
 pthread_mutex_t screenMutex;
 pthread_mutex_t gameOverMutex;
@@ -51,3 +52,14 @@ void* screenRefresh(void* dummy) {
 		sleepTicks(1);
 	}
 }
+
+bool isGameOver() {
+	wrappedMutexLock(&gameOverMutex);
+	if(gameOver) {
+		wrappedMutexUnlock(&gameOverMutex);
+		return true;
+	}
+	wrappedMutexUnlock(&gameOverMutex);
+	return false;
+}
+

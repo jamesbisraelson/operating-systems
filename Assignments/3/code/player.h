@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 #define SHIP_HEIGHT 5
-#define SHIP_WIDTH 4
+#define SHIP_WIDTH 5
 #define SHIP_ANIM_TILES 2
 
 
@@ -32,6 +32,7 @@ typedef struct player_struct {
 	pthread_mutex_t mutex;
 } player;
 
+void shootBullet(player* p);
 void nextAnim(player* p);
 void drawPlayer(player* p);
 void* runPlayer(void* data);
