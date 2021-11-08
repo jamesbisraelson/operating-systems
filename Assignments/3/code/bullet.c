@@ -3,10 +3,18 @@
 #include "console.h"
 #include "threadwrappers.h"
 #include "centipede.h"
+#include "gameglobals.h"
 
 #define BULLET_TICKS 5
 
 char* BULLET_SPRITE[] = { "*" };
+
+//helper function, not thread safe
+static bool isInBounds(bullet* b) {
+	if(b->row > GAME_ROWS) return false;
+	if(b->row < UPPER_BULLET_BOUND) return false;
+	return true;
+}
 
 void* runBullet(void* data) {
 	bullet* b = (bullet*)data;
@@ -15,14 +23,35 @@ void* runBullet(void* data) {
 	while(true) {
 		drawBullet(b);
 		moveBullet(b);
-		if(isGameOver()) {
-			free(b);
+		setState(b);
+		if(!(b->isAlive)) {
+			clearBullet(b);
 			pthread_exit(NULL);
 		}
 		sleepTicks(BULLET_TICKS);
 	}
-	return 0;
 }
+
+void clearBullet(bullet* b) {
+	wrappedMutexLock(&b->mutex);
+	b->row = -1;
+	wrappedMutexUnlock(&b->mutex);
+	drawBullet(b);
+}
+
+void setState(bullet* b) {
+	if(!isInBounds(b)) {
+		wrappedMutexLock(&b->mutex);
+		b->isAlive = false;
+		wrappedMutexUnlock(&b->mutex);
+	}
+	else if(isGameOver()) {
+		wrappedMutexLock(&b->mutex);
+		b->isAlive = false;
+		wrappedMutexUnlock(&b->mutex);
+	}
+}
+
 
 void moveBullet(bullet* b) {
 	wrappedMutexLock(&b->mutex);
@@ -56,6 +85,8 @@ void newBullet(bullet* b) {
 
 bullet* spawnBullet(int startRow, int startCol, bulletType type) {
 	bullet* b = malloc(sizeof(bullet));
+	addBullet(bList, b);
+	
 	b->row = startRow;
 	b->col = startCol;
 	b->prevRow = b->row;

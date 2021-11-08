@@ -9,7 +9,7 @@ bool gameOver = false;
 char *GAME_BOARD[] = {
 "Score:          Lives:",
 "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-centipiede!=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
-"",
+"				hhhhhhhhhh",
 "",
 "",
 "",

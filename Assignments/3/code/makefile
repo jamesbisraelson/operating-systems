@@ -1,8 +1,8 @@
 C=gcc
 CFLAGS=-Wall -lcurses -pthread
-DEPS=centipede.h console.h player.h gameglobals.h threadwrappers.h keyboard.h bullet.h
-OBJS=main.o centipede.o console.o player.o gameglobals.o threadwrappers.o keyboard.o bullet.o
-CFILES=main.c centipede.c console.c player.c gameglobals.c threadwrappers.c keyboard.c bullet.c
+DEPS=centipede.h console.h player.h gameglobals.h threadwrappers.h keyboard.h bullet.h list.h
+OBJS=main.o centipede.o console.o player.o gameglobals.o threadwrappers.o keyboard.o bullet.o list.o
+CFILES=main.c centipede.c console.c player.c gameglobals.c threadwrappers.c keyboard.c bullet.c list.c
 DEBUG=a.out
 EXE=centipede
 
@@ -32,6 +32,9 @@ keyboard.o: keyboard.c $(DEPS)
 
 bullet.o: bullet.c $(DEPS)
 	$(CC) -c bullet.c $(CFLAGS)
+
+list.o: list.c $(DEPS)
+	$(CC) -c list.c $(CFLAGS)
 
 debug:
 	$(CC) -g $(CFILES) $(CFLAGS)

@@ -46,7 +46,6 @@ void* runPlayer(void* data) {
 		}
 		sleepTicks(PLAYER_TICKS);		
 	}
-	return NULL;
 }
 
 void nextAnim(player* p) {

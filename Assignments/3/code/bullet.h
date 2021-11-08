@@ -1,3 +1,6 @@
+#ifndef BULLET_H
+#define BULLET_H
+
 #include <pthread.h>
 #include <stdbool.h>
 
@@ -17,8 +20,12 @@ typedef struct bullet_struct {
 	pthread_mutex_t mutex;
 } bullet;
 
+void clearBullet(bullet* b);
+void setState(bullet* b);
 bullet* spawnBullet(int startRow, int startCol, bulletType type);
 void drawBullet(bullet* b);
 void moveBullet(bullet* b);
 void newBullet(bullet* b);
 void* runBullet(void* data);
+
+#endif
