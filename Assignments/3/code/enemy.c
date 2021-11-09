@@ -141,12 +141,12 @@ void addSegment(enemy* e) {
 		e->tail = s;
 	}
 	else {
-		s->onScreen = false;
 		s->row = e->tail->row;
 		s->col = e->tail->col + ENEMY_WIDTH;
 		e->tail->next = s;
 		e->tail = s;
 	}
+	s->onScreen = false;
 	s->next = NULL;
 	s->prevRow = s->row;
 	s->prevCol = s->col;

@@ -41,11 +41,17 @@ void centipedeRun() {
 		wrappedPthreadJoin(keyboardThread, NULL);
 		
 		//TODO: add methods to cleanup and join dead bullets and enemies
-		free(e->head);
+		segment* s = e->head;
+		int i;
+		for(i=0; i<e->length; i++) {
+			segment* toFree = s;
+			s = s->next;
+			free(toFree);
+		}
 		wrappedPthreadJoin(e->thread, NULL);	
 		free(e);
 
-		int i;
+
 		bulletNode* node = bList->head;
 		for(i=0; i<bList->length; i++) {
 			wrappedPthreadJoin(node->payload->thread, NULL);
