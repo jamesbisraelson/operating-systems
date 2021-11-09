@@ -11,14 +11,13 @@ char* BULLET_SPRITE[] = { "*" };
 
 //helper function, not thread safe
 static bool isInBounds(bullet* b) {
-	if(b->row > GAME_ROWS) return false;
-	if(b->row < UPPER_BULLET_BOUND) return false;
+	if(b->row > LOWER_GAME_BOUND) return false;
+	if(b->row < UPPER_GAME_BOUND) return false;
 	return true;
 }
 
 void* runBullet(void* data) {
 	bullet* b = (bullet*)data;
-	newBullet(b);
 
 	while(true) {
 		drawBullet(b);
@@ -72,17 +71,6 @@ void drawBullet(bullet* b) {
 	wrappedMutexUnlock(&b->mutex);
 }
 
-void newBullet(bullet* b) {
-	wrappedMutexLock(&b->mutex);
-	switch(b->type) {
-		case PLAYER:
-			b->velocity = 1;
-		case ENEMY:
-			b->velocity = -1;
-	}
-	wrappedMutexUnlock(&b->mutex);
-}
-
 bullet* spawnBullet(int startRow, int startCol, bulletType type) {
 	bullet* b = malloc(sizeof(bullet));
 	addBullet(bList, b);
@@ -92,6 +80,14 @@ bullet* spawnBullet(int startRow, int startCol, bulletType type) {
 	b->prevRow = b->row;
 	b->type = type;
 	b->isAlive = true;
+	
+	switch(b->type) {
+		case PLAYER:
+			b->velocity = 1;
+		case ENEMY:
+			b->velocity = -1;
+	}
+	
 	wrappedMutexInit(&b->mutex, NULL);
 	wrappedPthreadCreate(&b->thread, NULL, runBullet, (void*)b);
 	return b;

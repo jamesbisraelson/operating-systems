@@ -27,7 +27,6 @@ void shootBullet(player* p) {
 	//align the bullet to the front of the ship
 	int bulletCol = p->col + SHIP_WIDTH / 2;
 	spawnBullet(bulletRow, bulletCol, PLAYER);
-	//TODO: join bullet after it dies
 }
 
 void* runPlayer(void* data) {
@@ -37,7 +36,7 @@ void* runPlayer(void* data) {
 	while(true) {
 		//draw the player and switch to the next animation tile
 		drawPlayer(p);
-		nextAnim(p);
+		nextPlayerAnim(p);
 		
 		//if the game is over, free the player memory
 		if(isGameOver()) {
@@ -48,7 +47,7 @@ void* runPlayer(void* data) {
 	}
 }
 
-void nextAnim(player* p) {
+void nextPlayerAnim(player* p) {
 	wrappedMutexLock(&p->mutex);
 	//increment player tile # 
 	//but make sure it does not exceed the max amount of tiles
@@ -65,11 +64,11 @@ void drawPlayer(player* p) {
 	consoleClearImage(p->prevRow, p->prevCol, SHIP_HEIGHT, SHIP_WIDTH);
 	consoleDrawImage(p->row, p->col, SHIP[p->animTile], SHIP_HEIGHT);
 	
+	wrappedMutexUnlock(&screenMutex);
 	//set the previous player position to where it was drawn
 	//this is so the next time it is run, it will be cleared
 	p->prevRow = p->row;
 	p->prevCol = p->col;
-	wrappedMutexUnlock(&screenMutex);
 	wrappedMutexUnlock(&p->mutex);
 }
 
@@ -81,10 +80,10 @@ void movePlayer(player* p, int dRow, int dCol) {
 	
 	//check to see if new position is outside of player area
 	//if so, return from function and do not move
-	if(newRow + SHIP_HEIGHT > GAME_ROWS) return;
+	if(newRow + SHIP_HEIGHT > LOWER_GAME_BOUND) return;
 	if(newRow < UPPER_PLAYER_BOUND) return;
-	if(newCol + SHIP_WIDTH > GAME_COLS) return;
-	if(newCol < LEFT_PLAYER_BOUND) return;
+	if(newCol + SHIP_WIDTH > RIGHT_GAME_BOUND) return;
+	if(newCol < LEFT_GAME_BOUND) return;
 	
 	//else move to new position
 	wrappedMutexLock(&p->mutex);

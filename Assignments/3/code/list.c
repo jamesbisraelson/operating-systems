@@ -2,7 +2,7 @@
 #include "list.h"
 
 bulletList* mallocBulletList() {
-	bulletList* bl = malloc(sizeof(bulletNode)*2+sizeof(int));
+	bulletList* bl = malloc(sizeof(bulletList));
 	bl->length = 0;
 	return bl;
 }
@@ -22,7 +22,7 @@ void addBullet(bulletList* bl, bullet* b) {
 }
 
 bulletNode* createBulletNode(bullet* b) {
-	bulletNode* node = malloc(sizeof(node)+sizeof(bulletNode)+sizeof(bullet));
+	bulletNode* node = malloc(sizeof(bulletNode));
 	node->payload = b;
 	node->next = NULL;
 	return node;

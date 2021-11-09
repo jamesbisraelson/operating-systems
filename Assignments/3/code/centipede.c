@@ -8,6 +8,7 @@
 #include "player.h"
 #include "keyboard.h"
 #include "bullet.h"
+#include "enemy.h"
 
 pthread_mutex_t screenMutex;
 pthread_mutex_t gameOverMutex;
@@ -17,13 +18,14 @@ pthread_t keyboardThread;
 bulletList* bList;
 
 void centipedeRun() {
-
-	if(consoleInit(GAME_ROWS, GAME_COLS, GAME_BOARD)) {
+	if(consoleInit(LOWER_GAME_BOUND, RIGHT_GAME_BOUND, GAME_BOARD)) {
 		bList = mallocBulletList();
 		wrappedMutexInit(&screenMutex, NULL);	
 		wrappedMutexInit(&gameOverMutex, NULL);
 		
 		player* p = spawnPlayer(22, 38, 3);
+		enemy* e = spawnEnemy(8);
+
 		wrappedPthreadCreate(&screenThread, NULL, screenRefresh, NULL);
 		wrappedPthreadCreate(&keyboardThread, NULL, runKeyboard, p);
 
@@ -38,6 +40,11 @@ void centipedeRun() {
 		wrappedPthreadJoin(p->thread, NULL);
 		wrappedPthreadJoin(keyboardThread, NULL);
 		
+		//TODO: add methods to cleanup and join dead bullets and enemies
+		free(e->head);
+		wrappedPthreadJoin(e->thread, NULL);	
+		free(e);
+
 		int i;
 		bulletNode* node = bList->head;
 		for(i=0; i<bList->length; i++) {

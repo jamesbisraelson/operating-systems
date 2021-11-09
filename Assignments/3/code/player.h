@@ -33,7 +33,7 @@ typedef struct player_struct {
 } player;
 
 void shootBullet(player* p);
-void nextAnim(player* p);
+void nextPlayerAnim(player* p);
 void drawPlayer(player* p);
 void* runPlayer(void* data);
 void newPlayer(player* p);

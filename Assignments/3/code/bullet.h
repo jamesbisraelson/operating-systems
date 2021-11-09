@@ -25,7 +25,6 @@ void setState(bullet* b);
 bullet* spawnBullet(int startRow, int startCol, bulletType type);
 void drawBullet(bullet* b);
 void moveBullet(bullet* b);
-void newBullet(bullet* b);
 void* runBullet(void* data);
 
 #endif
