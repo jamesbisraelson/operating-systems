@@ -5,7 +5,10 @@
 #include "centipede.h"
 #include "console.h"
 
+#define ENEMY_LENGTH 4
 #define ENEMY_TICKS 20
+#define SPAWNER_TICKS_MIN 400
+#define SPAWNER_TICKS_MAX 600
 
 //i apologize for what i have created
 //but this assignment was hard so you deserve it
@@ -26,20 +29,43 @@ char* ENEMY_HEAD[ENEMY_HEAD_TILES][ENEMY_HEIGHT] = {
 
 char* ENEMY_BODY[] = { "()()" };
 
+static void setState(enemy* e) {
+	if(isGameOver()) {
+		wrappedMutexLock(&e->mutex);
+		e->isAlive = false;
+		wrappedMutexUnlock(&e->mutex);
+	}
+}
+
 void* runEnemy(void* data) {
 	enemy* e = (enemy*)data;
 	while(true) {
-		drawEnemy(e);
-		moveEnemy(e);
-		
-		nextEnemyAnim(e);	
-		wrappedMutexLock(&gameOverMutex);
-		if(gameOver) {
-			wrappedMutexUnlock(&gameOverMutex);
+		setState(e);
+		wrappedMutexLock(&e->mutex);
+		if(!(e->isAlive)) {
+			wrappedMutexUnlock(&e->mutex);
 			pthread_exit(NULL);
 		}
-		wrappedMutexUnlock(&gameOverMutex);
+		wrappedMutexUnlock(&e->mutex);
+	
+		drawEnemy(e);
+		moveEnemy(e);
+		nextEnemyAnim(e);	
+		
 		sleepTicks(ENEMY_TICKS);
+	}
+}
+
+void* runEnemySpawner(void* data) {
+	enemyList* el = (enemyList*)data;
+	while(true) {
+		if(isGameOver()) {
+			pthread_exit(NULL);
+		}
+		addEnemy(el, spawnEnemy(ENEMY_LENGTH));
+		int ticks = rand() % SPAWNER_TICKS_MAX;
+		ticks += SPAWNER_TICKS_MIN;
+		sleepTicks(ticks);
 	}
 }
 

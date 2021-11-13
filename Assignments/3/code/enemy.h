@@ -33,6 +33,7 @@ void drawEnemy(enemy* e);
 void drawEnemySegments(enemy* e);
 void nextEnemyAnim(enemy* e);
 void* runEnemy(void* data);
+void* runEnemySpawner(void* data);
 enemy* spawnEnemy(int length);
 void addSegment(enemy* e);
 

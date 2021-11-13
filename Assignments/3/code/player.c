@@ -34,6 +34,7 @@ void* runPlayer(void* data) {
 	newPlayer(p);
 
 	while(true) {
+		
 		//draw the player and switch to the next animation tile
 		drawPlayer(p);
 		nextPlayerAnim(p);
@@ -43,6 +44,7 @@ void* runPlayer(void* data) {
 			free(p);
 			pthread_exit(NULL);
 		}
+		
 		sleepTicks(PLAYER_TICKS);		
 	}
 }

@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#include "enemy.h"
+
 typedef enum bullet_type {
 	PLAYER,
 	ENEMY
@@ -21,10 +23,10 @@ typedef struct bullet_struct {
 } bullet;
 
 void clearBullet(bullet* b);
-void setState(bullet* b);
 bullet* spawnBullet(int startRow, int startCol, bulletType type);
 void drawBullet(bullet* b);
 void moveBullet(bullet* b);
 void* runBullet(void* data);
-
+bool checkHit(bullet* b);
+bool collision(bullet* b, segment* s);
 #endif

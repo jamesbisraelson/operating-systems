@@ -4,6 +4,7 @@
 #include "threadwrappers.h"
 #include "centipede.h"
 #include "gameglobals.h"
+#include "list.h"
 
 #define BULLET_TICKS 5
 
@@ -16,20 +17,38 @@ static bool isInBounds(bullet* b) {
 	return true;
 }
 
+static void setState(bullet* b) {
+	wrappedMutexLock(&b->mutex);
+	if(isGameOver()) {
+		b->isAlive = false;
+	}
+	else if(!isInBounds(b)) {
+		b->isAlive = false;
+	}
+	else if(checkHit(b)) {
+		b->isAlive = false;
+	}
+	wrappedMutexUnlock(&b->mutex);
+}
+
 void* runBullet(void* data) {
 	bullet* b = (bullet*)data;
 
 	while(true) {
-		drawBullet(b);
-		moveBullet(b);
 		setState(b);
+		wrappedMutexLock(&b->mutex);
 		if(!(b->isAlive)) {
+			wrappedMutexUnlock(&b->mutex);
 			clearBullet(b);
 			pthread_exit(NULL);
 		}
+		wrappedMutexUnlock(&b->mutex);
+		drawBullet(b);
+		moveBullet(b);
 		sleepTicks(BULLET_TICKS);
 	}
 }
+
 
 void clearBullet(bullet* b) {
 	wrappedMutexLock(&b->mutex);
@@ -38,19 +57,41 @@ void clearBullet(bullet* b) {
 	drawBullet(b);
 }
 
-void setState(bullet* b) {
-	if(!isInBounds(b)) {
-		wrappedMutexLock(&b->mutex);
-		b->isAlive = false;
-		wrappedMutexUnlock(&b->mutex);
+
+bool checkHit(bullet* b) {
+	int i;
+	int j;
+	wrappedMutexLock(&enemyListMutex);
+	enemyNode* eNode = eList->head;
+	for(i=0; i<eList->length; i++) {
+		wrappedMutexLock(&eNode->payload->mutex);
+		enemy* e = eNode->payload;
+		segment* s = e->head;	
+		for(j=0; j<e->length; j++) {
+			if(e->isAlive == false) break;
+			if(collision(b, s)) {
+				e->isAlive = false;
+				wrappedMutexUnlock(&e->mutex);
+				wrappedMutexUnlock(&enemyListMutex);
+				return true;
+			}
+			s = s->next;
+		}
+		wrappedMutexUnlock(&e->mutex);
+		eNode = eNode->next;
 	}
-	else if(isGameOver()) {
-		wrappedMutexLock(&b->mutex);
-		b->isAlive = false;
-		wrappedMutexUnlock(&b->mutex);
-	}
+	wrappedMutexUnlock(&enemyListMutex);
+	return false;
 }
 
+bool collision(bullet* b, segment* s) {
+	if(abs(b->row - s->row) == 0) {
+		if(abs(b->col - s->col) <= ENEMY_WIDTH) {
+			return true;
+		}
+	}
+	return false;
+}
 
 void moveBullet(bullet* b) {
 	wrappedMutexLock(&b->mutex);
