@@ -44,5 +44,14 @@ debug:
 	gdb a.out
 	rm -f a.out
 
+valgrind: main
+	valgrind -s --leak-check=full --track-origins=yes ./$(EXE)
+
+helgrind: main
+	valgrind --tool=helgrind -s ./$(EXE)
+
 clean:
 	rm -f $(EXE) $(OBJS) $(DEBUG)
+
+run: main
+	./$(EXE)

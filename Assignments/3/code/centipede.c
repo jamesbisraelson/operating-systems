@@ -3,12 +3,12 @@
 #include <time.h>
 
 #include "centipede.h"
+#include "bullet.h"
 #include "threadwrappers.h"
 #include "console.h"
 #include "gameglobals.h"
 #include "player.h"
 #include "keyboard.h"
-#include "bullet.h"
 #include "enemy.h"
 
 void centipedeRun() {
@@ -25,10 +25,12 @@ void centipedeRun() {
 		wrappedMutexLock(&randomMutex);
 		srand(time(0));
 		wrappedMutexUnlock(&randomMutex);
-
+		
 		player* p = spawnPlayer(22, 38, 3);
+		wrappedMutexLock(&p->mutex);
 		wrappedPthreadCreate(&screenThread, NULL, screenRefresh, NULL);
 		wrappedPthreadCreate(&keyboardThread, NULL, runKeyboard, p);
+		wrappedMutexUnlock(&p->mutex);
 		wrappedPthreadCreate(&spawnerThread, NULL, runEnemySpawner, eList);
 
 		wrappedMutexLock(&gameOverMutex);	
@@ -42,6 +44,7 @@ void centipedeRun() {
 		
 		wrappedPthreadJoin(screenThread, NULL);
 		wrappedPthreadJoin(p->thread, NULL);
+		free(p);
 		wrappedPthreadJoin(keyboardThread, NULL);
 		wrappedPthreadJoin(spawnerThread, NULL);
 

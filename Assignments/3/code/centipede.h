@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include "list.h"
 
-
 void centipedeRun();
 void* screenRefresh(void* dummy);
 bool isGameOver();

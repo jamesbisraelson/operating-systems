@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <stdbool.h>
+#include "bullet.h"
 
 #define ENEMY_HEAD_TILES 12
 #define ENEMY_HEIGHT 1
@@ -24,9 +25,21 @@ typedef struct enemy_struct {
 	int length;
 	bool isAlive;
 	int animTile;
+	int ticks;
 	pthread_t thread;
 	pthread_mutex_t mutex;
 } enemy;
+
+typedef struct hit_struct {
+	enemy* enemyHit;
+	segment* segmentHit;
+	segment* prevSegment;
+} hit;
+
+hit* createHit(enemy* e, segment* s, segment* prev);
+hit* checkHit(bullet* b);
+enemy* splitEnemy(hit* h);
+bool collision(bullet* b, segment* s);
 
 void moveEnemy(enemy* e);
 void drawEnemy(enemy* e);

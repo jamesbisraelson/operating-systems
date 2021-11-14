@@ -18,6 +18,7 @@ static bool isInBounds(bullet* b) {
 }
 
 static void setState(bullet* b) {
+	hit* h;
 	wrappedMutexLock(&b->mutex);
 	if(isGameOver()) {
 		b->isAlive = false;
@@ -25,8 +26,10 @@ static void setState(bullet* b) {
 	else if(!isInBounds(b)) {
 		b->isAlive = false;
 	}
-	else if(checkHit(b)) {
+	else if((h = checkHit(b)) != NULL) {
 		b->isAlive = false;
+		addEnemy(eList, splitEnemy(h));
+		free(h);
 	}
 	wrappedMutexUnlock(&b->mutex);
 }
@@ -55,42 +58,6 @@ void clearBullet(bullet* b) {
 	b->row = -1;
 	wrappedMutexUnlock(&b->mutex);
 	drawBullet(b);
-}
-
-
-bool checkHit(bullet* b) {
-	int i;
-	int j;
-	wrappedMutexLock(&enemyListMutex);
-	enemyNode* eNode = eList->head;
-	for(i=0; i<eList->length; i++) {
-		wrappedMutexLock(&eNode->payload->mutex);
-		enemy* e = eNode->payload;
-		segment* s = e->head;	
-		for(j=0; j<e->length; j++) {
-			if(e->isAlive == false) break;
-			if(collision(b, s)) {
-				e->isAlive = false;
-				wrappedMutexUnlock(&e->mutex);
-				wrappedMutexUnlock(&enemyListMutex);
-				return true;
-			}
-			s = s->next;
-		}
-		wrappedMutexUnlock(&e->mutex);
-		eNode = eNode->next;
-	}
-	wrappedMutexUnlock(&enemyListMutex);
-	return false;
-}
-
-bool collision(bullet* b, segment* s) {
-	if(abs(b->row - s->row) == 0) {
-		if(abs(b->col - s->col) <= ENEMY_WIDTH) {
-			return true;
-		}
-	}
-	return false;
 }
 
 void moveBullet(bullet* b) {

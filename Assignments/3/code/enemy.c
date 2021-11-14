@@ -1,12 +1,12 @@
 #include <stdlib.h>
-#include "enemy.h"
 #include "gameglobals.h"
 #include "threadwrappers.h"
 #include "centipede.h"
 #include "console.h"
 
-#define ENEMY_LENGTH 4
-#define ENEMY_TICKS 20
+#define ENEMY_MIN 2
+#define ENEMY_LENGTH 8
+#define ENEMY_TICKS 10
 #define SPAWNER_TICKS_MIN 400
 #define SPAWNER_TICKS_MAX 600
 
@@ -30,11 +30,14 @@ char* ENEMY_HEAD[ENEMY_HEAD_TILES][ENEMY_HEIGHT] = {
 char* ENEMY_BODY[] = { "()()" };
 
 static void setState(enemy* e) {
+	wrappedMutexLock(&e->mutex);
 	if(isGameOver()) {
-		wrappedMutexLock(&e->mutex);
 		e->isAlive = false;
-		wrappedMutexUnlock(&e->mutex);
 	}
+	else if(e->length <= ENEMY_MIN) {
+		e->isAlive = false;
+	}
+	wrappedMutexUnlock(&e->mutex);
 }
 
 void* runEnemy(void* data) {
@@ -52,7 +55,7 @@ void* runEnemy(void* data) {
 		moveEnemy(e);
 		nextEnemyAnim(e);	
 		
-		sleepTicks(ENEMY_TICKS);
+		sleepTicks(e->ticks);
 	}
 }
 
@@ -67,6 +70,99 @@ void* runEnemySpawner(void* data) {
 		ticks += SPAWNER_TICKS_MIN;
 		sleepTicks(ticks);
 	}
+}
+
+//not thread safe for bullets
+hit* checkHit(bullet* b) {
+	int i;
+	int j;
+	wrappedMutexLock(&enemyListMutex);
+	enemyNode* eNode = eList->head;
+	for(i=0; i<eList->length; i++) {
+		wrappedMutexLock(&eNode->payload->mutex);
+		enemy* e = eNode->payload;
+		segment* s = e->head;
+		segment* prev = NULL;
+		for(j=0; j<e->length; j++) {
+			if(e->isAlive == false) break;
+			if(collision(b, s)) {
+				hit* h = createHit(e, s, prev);
+				wrappedMutexUnlock(&e->mutex);
+				wrappedMutexUnlock(&enemyListMutex);
+				return h;
+			}
+			prev = s;
+			s = s->next;
+		}
+		wrappedMutexUnlock(&e->mutex);
+		eNode = eNode->next;
+	}
+	wrappedMutexUnlock(&enemyListMutex);
+	return NULL;
+}
+
+//not thread safe
+bool collision(bullet* b, segment* s) {
+	if(abs(b->row - s->row) == 0) {
+		if(abs(b->col - s->col) <= ENEMY_WIDTH) {
+			return true;
+		}
+	}
+	return false;
+}
+
+static int getLength(enemy* e) {
+	int length = 0;
+	segment* current = e->head;
+	while(current != NULL) {
+		length++;
+		current = current->next;
+	}
+	return length;
+}
+
+//not thread safe
+hit* createHit(enemy* e, segment* s, segment* prev) {
+	hit* h = malloc(sizeof(hit));
+	h->enemyHit = e;
+	h->segmentHit = s;
+	h->prevSegment = prev;
+	return h;
+}
+
+enemy* splitEnemy(hit* h) {
+	//make current enemy shorter
+	wrappedMutexLock(&h->enemyHit->mutex);
+
+	segment* newHead = NULL;
+	if(h->prevSegment == NULL) {
+		h->enemyHit->tail = h->segmentHit;
+		newHead = h->segmentHit->next;	
+		h->segmentHit->next = NULL;
+	}
+	else {
+		h->enemyHit->tail = h->prevSegment;
+		newHead = h->segmentHit;
+		h->prevSegment->next = NULL;
+	}
+	h->enemyHit->length = getLength(h->enemyHit);
+
+	//create new enemy and return it
+	enemy* e = malloc(sizeof(enemy));
+	e->head = newHead;
+	e->tail = h->enemyHit->tail;
+	e->length = getLength(e);
+	e->isAlive = true;
+	e->animTile = 0;
+	e->ticks = h->enemyHit->ticks;
+	wrappedMutexInit(&e->mutex, NULL);
+	wrappedPthreadCreate(&e->thread, NULL, runEnemy, (void*)e);
+	
+	//set original enemy to faster speed
+	h->enemyHit->ticks--;
+	wrappedMutexUnlock(&h->enemyHit->mutex);
+	
+	return e;
 }
 
 void moveEnemy(enemy* e) {
@@ -85,6 +181,10 @@ void moveEnemy(enemy* e) {
 			else if(s->col > RIGHT_GAME_BOUND - ENEMY_WIDTH/2) {
 				s->row++;
 				s->direction = LEFT;
+			}
+			//if enemy is at the bottom of the screen, do not move down one row
+			if(s->row >= UPPER_PLAYER_BOUND - ENEMY_HEIGHT) {
+				s->row--;
 			}
 		}
 
@@ -146,6 +246,7 @@ enemy* spawnEnemy(int length) {
 	e->length = 0;
 	e->isAlive = true;
 	e->animTile = 0;
+	e->ticks = ENEMY_TICKS;
 
 	int i;
 	for(i=0; i<length; i++) {

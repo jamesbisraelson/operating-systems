@@ -15,7 +15,7 @@ void* runKeyboard(void* data) {
 	while(true) {
 		char c;
 		wrappedMutexLock(&screenMutex);
-		if(kbhit()) {
+		if(kbhit() && p->state == GAME) {
 			c = getch();
 			switch(c) {
 				case 'w':

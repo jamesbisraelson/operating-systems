@@ -31,7 +31,6 @@ void shootBullet(player* p) {
 
 void* runPlayer(void* data) {
 	player* p = (player*)data;
-	newPlayer(p);
 
 	while(true) {
 		
@@ -41,7 +40,6 @@ void* runPlayer(void* data) {
 		
 		//if the game is over, free the player memory
 		if(isGameOver()) {
-			free(p);
 			pthread_exit(NULL);
 		}
 		
@@ -113,5 +111,6 @@ player* spawnPlayer(int startRow, int startCol, int lives) {
 	p->prevCol = startCol;
 	wrappedMutexInit(&(p->mutex), NULL);
 	wrappedPthreadCreate(&(p->thread), NULL, runPlayer, (void*)p);
+	newPlayer(p);
 	return p;
 }
