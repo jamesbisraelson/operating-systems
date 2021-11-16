@@ -1,3 +1,6 @@
+//enemy.c
+//holds all the functions to run the enemy thread
+
 #include <stdlib.h>
 #include "gameglobals.h"
 #include "threadwrappers.h"

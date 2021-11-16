@@ -1,3 +1,5 @@
+//player.c
+//contains all the functions to run the player thread
 #include <stdlib.h>
 #include "player.h"
 #include "threadwrappers.h"
@@ -5,8 +7,10 @@
 #include "gameglobals.h"
 #include "bullet.h"
 
+//how fast the player moves
 #define PLAYER_TICKS 10
 
+//the ship animation
 char* SHIP[SHIP_ANIM_TILES][SHIP_HEIGHT] = {
 {
 	"/-\\",

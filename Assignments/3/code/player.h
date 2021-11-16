@@ -1,9 +1,12 @@
+//player.h
+//the .h file for player.c
 #ifndef PLAYER_H
 #define PLAYER_H
 
 #include <stdbool.h>
 #include <pthread.h>
 
+//constants for ship animation
 #define SHIP_HEIGHT 3
 #define SHIP_WIDTH 3
 #define SHIP_ANIM_TILES 2

@@ -1,3 +1,5 @@
+//list.c
+//all of the functions to work with bulletLists and enemyLists
 #include <stdlib.h>
 #include "list.h"
 #include "threadwrappers.h"

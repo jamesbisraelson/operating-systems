@@ -1,3 +1,5 @@
+//keyboard.c
+//holds all the functions to run the keyboard thread
 #include <curses.h>
 #include <sys/select.h>
 
@@ -13,15 +15,18 @@ void* runKeyboard(void* data) {
 	
 	while(true) {
 		char c;
+		//if gameover exit thread
 		if(isGameOver()) {
 			pthread_exit(NULL);
 		}
 		wrappedMutexLock(&screenMutex);
+		//if keyboard hit, get the character hit and do something with it
 		if(kbhit()) {
 			c = getch();
 			wrappedMutexLock(&p->mutex);
 			if(p->state == GAME) {
 				wrappedMutexUnlock(&p->mutex);
+				//up left down right shoot quit
 				switch(c) {
 					case 'w':
 						movePlayer(p, -1, 0);
@@ -45,8 +50,10 @@ void* runKeyboard(void* data) {
 						putString(QUIT_STR, MSG_ROW, MSG_COL, QUIT_STR_LEN);
 						wrappedMutexUnlock(&screenMutex);
 						endGame();
+						//if quit show message and exit thread
 						pthread_exit(NULL);
 				}
+				//flush any exta input
 				flushinp();
 			}
 			else {
@@ -58,6 +65,7 @@ void* runKeyboard(void* data) {
 }
 
 int kbhit() {
+	//check to see if there is any input available using select
 	struct timeval tv = { 0L, 0L };
 	fd_set fds;
 	FD_ZERO(&fds);

@@ -1,3 +1,5 @@
+//gameglobals.c
+//holds all of the global variables, mutexes, and threads for the game
 #include "gameglobals.h"
 
 #include "console.h"
@@ -64,6 +66,7 @@ bool isGameOver() {
 	return false;
 }
 
+//if called, set gameover = true and signal the gameOverCond
 void endGame() {
 	wrappedMutexLock(&gameOverMutex);	
 	wrappedCondSignal(&gameOverCond);

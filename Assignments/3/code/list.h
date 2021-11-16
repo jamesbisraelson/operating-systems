@@ -1,3 +1,5 @@
+//list.h
+//the .h file for list.c
 #ifndef LIST_H
 #define LIST_H
 

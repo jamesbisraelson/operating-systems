@@ -1,3 +1,5 @@
+//main.c
+//the main function
 #include <stdio.h>
 #include "centipede.h" 
 
