@@ -1,3 +1,5 @@
+//threadwrappers.c
+//all the wrapper functions for thread and mutex functionality
 #include <errno.h>
 #include <stdio.h>
 #include "threadwrappers.h"

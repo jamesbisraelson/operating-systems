@@ -1,0 +1,1411 @@
+//bullet.h
+//the .h file for bullet.c
+#ifndef BULLET_H
+#define BULLET_H
+
+#include <pthread.h>
+#include <stdbool.h>
+
+//defines the two types of bullets
+typedef enum bullet_type {
+	PLAYER,
+	ENEMY
+} bulletType;
+
+//holds all the information for a bullet
+typedef struct bullet_struct {
+	int row;
+	int col;
+	int prevRow;
+	int velocity;
+	bool isAlive;
+	bool isJoined;
+	bulletType type;
+	pthread_t thread;
+	pthread_mutex_t mutex;
+} bullet;
+
+//draw a blank space over the last place a bullet was drawn
+void clearBullet(bullet* b);
+
+//create a new bullet and start the bullet thread
+bullet* spawnBullet(int startRow, int startCol, bulletType type);
+
+//draw the bullet at its current position to the buffer
+void drawBullet(bullet* b);
+
+//move a bullet in a certain direction depending on bullet type
+void moveBullet(bullet* b);
+
+//the function passed to the thread for a bullet
+void* runBullet(void* data);
+#endif
+//centipede.h
+//the .h file for centipede.c
+
+#ifndef CENTIPEDE_H
+#define CENTIPEDE_H
+
+#include <pthread.h>
+#include <stdbool.h>
+#include "list.h"
+
+//the main executing function for the game
+void centipedeRun();
+
+//thread to refresh screen
+void* screenRefresh(void* dummy);
+
+//thread to cleanup memory and check score/lives
+void* runCleanup(void* dummy);
+
+#endif
+//enemy.h
+//the .h file for enemy.c
+#ifndef ENEMY_H
+#define ENEMY_H
+
+#include <pthread.h>
+#include <stdbool.h>
+#include "bullet.h"
+#include "player.h"
+
+#define ENEMY_HEAD_TILES 12
+#define ENEMY_HEIGHT 1
+#define ENEMY_WIDTH 4
+
+typedef struct enemy_segment {
+	struct enemy_segment* next;
+	int row;
+	int col;
+	int prevRow;
+	int prevCol;
+	int direction;
+	bool onScreen;
+} segment;
+
+typedef struct enemy_struct {
+	segment* head;
+	segment* tail;
+	int length;
+	bool isAlive;
+	bool isJoined;
+	int animTile;
+	int ticks;
+	pthread_t thread;
+	pthread_mutex_t mutex;
+} enemy;
+
+typedef struct hit_struct {
+	enemy* enemyHit;
+	segment* segmentHit;
+	segment* prevSegment;
+} hit;
+
+hit* createHit(enemy* e, segment* s, segment* prev);
+hit* checkHit(bullet* b);
+enemy* splitEnemy(hit* h);
+bool enemyCollision(bullet* b, segment* s);
+bool playerCollision(bullet* b, player* p);
+void moveEnemy(enemy* e);
+void drawEnemy(enemy* e);
+void drawEnemySegments(enemy* e);
+void nextEnemyAnim(enemy* e);
+void* runEnemy(void* data);
+void* runEnemySpawner(void* data);
+enemy* spawnEnemy(int length);
+void addSegment(enemy* e);
+
+#endif
+//gameglobals.h
+//the .h file for gameglobals.c
+
+#ifndef GAMEGLOBALS_H
+#define GAMEGLOBALS_H
+
+#include <stdbool.h>
+#include "list.h"
+
+//upper and lower bounds for bullets/enemies
+#define LOWER_GAME_BOUND 28
+#define UPPER_GAME_BOUND 2
+
+//upper bound for player
+#define UPPER_PLAYER_BOUND 17
+
+//left and right bounds of game
+#define RIGHT_GAME_BOUND 80
+#define LEFT_GAME_BOUND 0
+
+#define LEFT -1
+#define RIGHT 1
+#define UP -1
+#define DOWN 1
+
+//game over messages
+#define GAME_OVER_STR "you suck."
+#define QUIT_STR "quitter..."
+#define QUIT_STR_LEN 11
+#define MSG_ROW 9
+#define MSG_COL 30
+
+//how  long to sleep when player dies
+#define DEAD_SLEEP 20
+
+//global mutexes
+extern pthread_mutex_t screenMutex;
+extern pthread_mutex_t gameOverMutex;
+extern pthread_mutex_t randomMutex;
+extern pthread_mutex_t bulletListMutex;
+extern pthread_mutex_t enemyListMutex;
+extern pthread_mutex_t scoreMutex;
+
+//game over condition
+extern pthread_cond_t gameOverCond;
+
+//global threads
+extern pthread_t keyboardThread;
+extern pthread_t screenThread;
+extern pthread_t spawnerThread;
+extern pthread_t cleanupThread;
+
+//global bullet and enemy lists
+extern bulletList* bList;
+extern enemyList* eList;
+
+//the global player struct
+extern player* p;
+
+//other global variables
+extern int score;
+extern bool gameOver;
+extern char* GAME_BOARD[];
+
+//checks if the game is over
+bool isGameOver();
+
+//sets the game to done and signals the gameOverCond
+void endGame();
+#endif
+//keyboard.h
+//the .h file for keyboard.c
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
+
+//check to see if there is input available and return true if so
+int kbhit();
+
+//the function to run the keyboard thread
+void* runKeyboard(void* data);
+#endif
+//list.h
+//the .h file for list.c
+#ifndef LIST_H
+#define LIST_H
+
+#include "bullet.h"
+#include "enemy.h"
+
+typedef struct bullet_node {
+	bullet* payload;
+	struct bullet_node* next;
+} bulletNode;
+
+typedef struct bullet_list {
+	bulletNode* head;
+	bulletNode* tail;
+	int length;
+} bulletList;
+
+typedef struct enemy_node {
+	enemy* payload;
+	struct enemy_node* next;
+} enemyNode;
+
+typedef struct enemy_list {
+	enemyNode* head;
+	enemyNode* tail;
+	int length;
+	int liveEnemies;
+} enemyList;
+
+bulletNode* createBulletNode(bullet* b);
+bulletList* mallocBulletList();
+void addBullet(bulletList* bl, bullet* b);
+void freeBulletList(bulletList* bl);
+void joinBulletList(bulletList* bl);
+
+enemyNode* createEnemyNode(enemy* e);
+enemyList* mallocEnemyList();
+void addEnemy(enemyList* el, enemy* e);
+void freeEnemyList(enemyList* el);
+void joinEnemyList(enemyList* el);
+
+#endif
+//player.h
+//the .h file for player.c
+#ifndef PLAYER_H
+#define PLAYER_H
+
+#include <stdbool.h>
+#include <pthread.h>
+
+//constants for ship animation
+#define SHIP_HEIGHT 3
+#define SHIP_WIDTH 3
+#define SHIP_ANIM_TILES 2
+
+//the ship animation
+extern char* SHIP[SHIP_ANIM_TILES][SHIP_HEIGHT];
+
+//the three states the player can be in
+typedef enum player_state {
+	GAME,
+	DEAD,
+	GAMEOVER
+} playerState;
+
+//all of the information for the player is held here
+typedef struct player_struct {
+	int startCol;
+	int startRow;
+	int col;
+	int row;
+	int prevCol;
+	int prevRow;
+	bool running;
+	int lives;
+	int animTile;
+	playerState state;
+	pthread_t thread;
+	pthread_mutex_t mutex;
+} player;
+
+//takes a player and shoots a bullet from its position
+void shootBullet(player* p);
+
+//takes a player and increments its animation
+void nextPlayerAnim(player* p);
+
+//takes a player and draws it to the buffer
+void drawPlayer(player* p);
+
+//the function passed to the thread for operating the player
+void* runPlayer(void* data);
+
+//sets a new player at the original starting position
+void newPlayer(player* p);
+
+//mallocs a player struct and starts the player thread
+player* spawnPlayer(int startCol, int startRow, int lives);
+
+//moves the player by a difference of dRow and dCol
+void movePlayer(player* p, int dRow, int dCol);
+
+#endif
+//threadwrappers.h
+//the .h file for threadwrappers.c
+#ifndef THREADWRAPPERS_H
+#define THREADWRAPPERS_H
+
+#include <pthread.h>
+
+int wrappedMutexLock(pthread_mutex_t* mutex);
+int wrappedMutexTrylock(pthread_mutex_t* mutex);
+int wrappedMutexUnlock(pthread_mutex_t* mutex);
+int wrappedMutexInit(pthread_mutex_t* mutex,  const  pthread_mutexattr_t* mutexattr);
+int wrappedPthreadCreate(pthread_t* thread, const pthread_attr_t* attr, void* (*start_routine) (void*), void* arg);
+int wrappedPthreadJoin(pthread_t thread, void** retval);
+int wrappedCondSignal(pthread_cond_t* cond);
+int wrappedCondWait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+
+#endif
+//bullet.c
+//holds all the functions to run a bullet thread
+#include <stdlib.h>
+#include "bullet.h"
+#include "console.h"
+#include "threadwrappers.h"
+#include "gameglobals.h"
+#include "list.h"
+
+//bullet speed
+#define BULLET_TICKS 10
+
+//bullet animation
+char* BULLET_SPRITE[] = { "*" };
+
+//checks to see if a bullet is in bounds
+//helper function, not thread safe
+static bool isInBounds(bullet* b) {
+	if(b->row > LOWER_GAME_BOUND) return false;
+	if(b->row < UPPER_GAME_BOUND) return false;
+	return true;
+}
+
+//checks to see if a bullet should be alive and if not sets it to dead
+static void setState(bullet* b) {
+	hit* h;
+	//if game is over set to dead
+	if(isGameOver()) {
+		b->isAlive = false;
+	}
+	//if out of bounds set to dead
+	else if(!isInBounds(b)) {
+		b->isAlive = false;
+	}
+	//if bullet hits an enemy set to dead
+	else if((h = checkHit(b)) != NULL) {
+		b->isAlive = false;
+		addEnemy(eList, splitEnemy(h));
+		free(h);
+	}
+	//if player is dead set bullet to dead
+	wrappedMutexLock(&p->mutex);
+	if(p->state == DEAD) {
+		b->isAlive = false;
+	}
+	wrappedMutexUnlock(&p->mutex);
+}
+
+void* runBullet(void* data) {
+	bullet* b = (bullet*)data;
+
+	while(true) {
+		wrappedMutexLock(&b->mutex);
+		setState(b);
+		
+		//if bullet is dead, exit thread
+		if(!(b->isAlive)) {
+			clearBullet(b);
+			wrappedMutexUnlock(&b->mutex);
+			pthread_exit(NULL);
+		}
+		drawBullet(b);
+		moveBullet(b);
+		wrappedMutexUnlock(&b->mutex);
+		sleepTicks(BULLET_TICKS);
+	}
+}
+
+void clearBullet(bullet* b) {
+	//set bullet off screen and redraw
+	b->row = -1;
+	drawBullet(b);
+}
+
+
+void moveBullet(bullet* b) {
+	b->row += b->velocity;
+}
+
+void drawBullet(bullet* b) {
+	wrappedMutexLock(&screenMutex);
+	//clear the previous image (bullet size is 1x1)
+	consoleClearImage(b->prevRow, b->col, 1, 1);
+	//draw bullet
+	consoleDrawImage(b->row, b->col, BULLET_SPRITE, 1);
+	//set prevRow to the row that was just drawn
+	b->prevRow = b->row;
+	wrappedMutexUnlock(&screenMutex);
+}
+
+bullet* spawnBullet(int startRow, int startCol, bulletType type) {
+	//create bullet
+	bullet* b = malloc(sizeof(bullet));
+	addBullet(bList, b);
+	
+	b->row = startRow;
+	b->col = startCol;
+	b->prevRow = b->row;
+	b->type = type;
+	b->isAlive = true;
+	b->isJoined = false;
+	
+	//set velocity based on type
+	if(b->type == PLAYER) {
+		b->velocity = -1;
+	}
+	else if(b->type == ENEMY) {
+		b->velocity = 1;
+	}
+	
+	//start thread
+	wrappedMutexInit(&b->mutex, NULL);
+	wrappedPthreadCreate(&b->thread, NULL, runBullet, (void*)b);
+	return b;
+}
+
+//centipede.c
+//holds the main executing function of the program
+//as well as the screenRefresh and cleanup threads
+
+#include <stdlib.h>
+#include <pthread.h>
+#include <time.h>
+#include <stdio.h>
+
+#include "centipede.h"
+#include "bullet.h"
+#include "threadwrappers.h"
+#include "console.h"
+#include "gameglobals.h"
+#include "player.h"
+#include "keyboard.h"
+#include "enemy.h"
+
+//player starting position
+#define START_COL 38
+#define START_ROW 20
+
+//position of score on screen
+#define SCORE_COL 7
+#define SCORE_ROW 0
+#define SCORE_LEN 10
+
+// # of lives started with
+#define LIVES 3
+//position of lives on screen
+#define LIVES_COL 23
+#define LIVES_ROW 0
+#define LIVES_LEN 2
+
+void centipedeRun() {
+	if(consoleInit(LOWER_GAME_BOUND, RIGHT_GAME_BOUND, GAME_BOARD)) {
+		//set everything up
+		wrappedMutexInit(&screenMutex, NULL);
+		wrappedMutexInit(&gameOverMutex, NULL);
+		wrappedMutexInit(&randomMutex, NULL);
+		wrappedMutexInit(&bulletListMutex, NULL);
+		wrappedMutexInit(&enemyListMutex, NULL);
+		wrappedMutexInit(&scoreMutex, NULL);
+	
+		score = 0;
+
+		bList = mallocBulletList();
+		eList = mallocEnemyList();
+
+		wrappedMutexLock(&randomMutex);
+		srand(time(0));
+		wrappedMutexUnlock(&randomMutex);
+		
+		p = spawnPlayer(START_ROW, START_COL, LIVES);
+		wrappedMutexLock(&p->mutex);
+		wrappedPthreadCreate(&screenThread, NULL, screenRefresh, NULL);
+		wrappedPthreadCreate(&keyboardThread, NULL, runKeyboard, p);
+		wrappedMutexUnlock(&p->mutex);
+		wrappedPthreadCreate(&spawnerThread, NULL, runEnemySpawner, eList);
+		wrappedPthreadCreate(&cleanupThread, NULL, runCleanup, NULL);
+
+		//wait until gameOver signal is sent
+		wrappedMutexLock(&gameOverMutex);	
+		wrappedCondWait(&gameOverCond, &gameOverMutex);
+		wrappedMutexUnlock(&gameOverMutex);
+	
+		//wait for final keypress
+		wrappedMutexLock(&screenMutex);
+		finalKeypress();
+		consoleFinish();
+		wrappedMutexUnlock(&screenMutex);
+		
+		//join threads and free memory
+		wrappedPthreadJoin(screenThread, NULL);
+		wrappedPthreadJoin(p->thread, NULL);
+		free(p);
+		wrappedPthreadJoin(keyboardThread, NULL);
+		wrappedPthreadJoin(cleanupThread, NULL);
+		
+		joinEnemyList(eList);
+		freeEnemyList(eList);
+		joinBulletList(bList);
+		freeBulletList(bList);
+		
+		//this thread takes a while to clean up because it has a very long sleep timer
+		//that is why the program hangs for a bit before the done message is shown
+		wrappedPthreadJoin(spawnerThread, NULL);
+	}
+}
+
+void* screenRefresh(void* dummy) {
+	while(true) {
+		//if gameover, exit thread
+		if(isGameOver()) {
+			pthread_exit(NULL);
+		}
+		wrappedMutexLock(&screenMutex);
+		//refresh screen
+		consoleRefresh();
+		wrappedMutexUnlock(&screenMutex);
+		sleepTicks(1);
+	}
+}
+
+void* runCleanup(void* dummy) {
+	while(true) {
+		//if gameover exit thread
+		if(isGameOver()) {
+			pthread_exit(NULL);
+		}
+		wrappedMutexLock(&enemyListMutex);
+		wrappedMutexLock(&scoreMutex);
+		//if no more enemies and player has shot a bullet, gameover and exit
+		if(eList->liveEnemies == 0 && score > 0) {
+			wrappedMutexUnlock(&enemyListMutex);
+			wrappedMutexUnlock(&scoreMutex);
+			endGame();
+			pthread_exit(NULL);
+		}
+		wrappedMutexUnlock(&enemyListMutex);
+		wrappedMutexUnlock(&scoreMutex);
+		
+		//cleanup dead bullets/enemies
+		joinEnemyList(eList);
+		joinBulletList(bList);
+		
+		char score_str[SCORE_LEN];
+		char lives_str[LIVES_LEN];
+
+		//get score
+		wrappedMutexLock(&scoreMutex);
+		sprintf(score_str, "%d", score);
+		wrappedMutexUnlock(&scoreMutex);
+
+		//get lives
+		wrappedMutexLock(&p->mutex);
+		sprintf(lives_str, "%d", p->lives);
+		wrappedMutexUnlock(&p->mutex);
+		
+		//put them on screen
+		wrappedMutexLock(&screenMutex);
+		putString(score_str, SCORE_ROW, SCORE_COL, SCORE_LEN);
+		putString(lives_str, LIVES_ROW, LIVES_COL, LIVES_LEN);
+		wrappedMutexUnlock(&screenMutex);
+
+		sleepTicks(5);
+	}
+}
+//enemy.c
+//holds all the functions to run the enemy thread
+
+#include <stdlib.h>
+#include "gameglobals.h"
+#include "threadwrappers.h"
+#include "console.h"
+
+#define SHOOT_TICKS 50
+#define HIT_SCORE 10
+#define ENEMY_SCORE 100
+#define ENEMY_MIN 1
+#define ENEMY_LENGTH 8
+#define ENEMY_TICKS 10
+#define SPAWNER_TICKS_MIN 400
+#define SPAWNER_TICKS_MAX 600
+#define ENEMY_DEAD_SLEEP 20
+
+//i apologize for what i have created
+//but this assignment was hard so you deserve it
+char* ENEMY_HEAD[ENEMY_HEAD_TILES][ENEMY_HEIGHT] = {
+	{"OwwO"},
+	{"owwO"},
+	{"owwO"},
+	{"owwO"},
+	{"OwwO"},
+	{"OwwO"},
+	{"OwwO"},
+	{"Owwo"},
+	{"Owwo"},
+	{"Owwo"},
+	{"OwwO"},
+	{"OwwO"}
+};
+
+char* ENEMY_BODY[] = { "()()" };
+
+static void setState(enemy* e) {
+	if(isGameOver()) {
+		e->isAlive = false;
+	}
+	else if(e->length <= ENEMY_MIN) {
+		e->isAlive = false;
+	}
+}
+
+void* runEnemy(void* data) {
+	enemy* e = (enemy*)data;
+	int shootCounter = 0;
+
+	while(true) {
+		wrappedMutexLock(&e->mutex);
+		setState(e);
+		if(!(e->isAlive)) {	
+			wrappedMutexLock(&scoreMutex);
+			score += ENEMY_SCORE;
+			wrappedMutexUnlock(&scoreMutex);
+			wrappedMutexUnlock(&e->mutex);
+			pthread_exit(NULL);
+		}
+		wrappedMutexLock(&p->mutex);
+		if(p->state == DEAD) {
+			sleepTicks(ENEMY_DEAD_SLEEP);
+		}
+		wrappedMutexUnlock(&p->mutex);
+		
+		wrappedMutexLock(&randomMutex);
+		shootCounter = rand() % SHOOT_TICKS;
+		wrappedMutexUnlock(&randomMutex);
+		if(shootCounter == 0) {
+			spawnBullet(e->head->row, e->head->col, ENEMY);
+		}
+		drawEnemy(e);
+		moveEnemy(e);
+		nextEnemyAnim(e);	
+		
+		wrappedMutexUnlock(&e->mutex);
+		wrappedMutexLock(&e->mutex);
+		int ticks = e->ticks;
+		wrappedMutexUnlock(&e->mutex);
+		sleepTicks(ticks);
+	}
+}
+
+void* runEnemySpawner(void* data) {
+	enemyList* el = (enemyList*)data;
+	while(true) {
+		if(isGameOver()) {
+			pthread_exit(NULL);
+		}
+		wrappedMutexLock(&p->mutex);
+		if(p->state == DEAD) {
+			sleepTicks(ENEMY_DEAD_SLEEP);
+		}
+		wrappedMutexUnlock(&p->mutex);
+		addEnemy(el, spawnEnemy(ENEMY_LENGTH));
+		int ticks = rand() % SPAWNER_TICKS_MAX;
+		ticks += SPAWNER_TICKS_MIN;
+		sleepTicks(ticks);
+	}
+}
+
+//not thread safe for bullets
+hit* checkHit(bullet* b) {
+	if(b->type == PLAYER) {
+		int i;
+		int j;
+		wrappedMutexLock(&enemyListMutex);
+		enemyNode* eNode = eList->head;
+		for(i=0; i<eList->length; i++) {
+			wrappedMutexLock(&eNode->payload->mutex);
+			enemy* e = eNode->payload;
+			segment* s = e->head;
+			segment* prev = NULL;
+			for(j=0; j<e->length; j++) {
+				if(e->isAlive == false) break;
+				if(enemyCollision(b, s)) {
+					hit* h = createHit(e, s, prev);
+					wrappedMutexUnlock(&e->mutex);
+					wrappedMutexUnlock(&enemyListMutex);
+					wrappedMutexLock(&scoreMutex);
+					score += HIT_SCORE;
+					wrappedMutexUnlock(&scoreMutex);
+					return h;
+				}
+				prev = s;
+				s = s->next;
+			}
+			wrappedMutexUnlock(&e->mutex);
+			eNode = eNode->next;
+		}
+		wrappedMutexUnlock(&enemyListMutex);
+	}
+	else if(b->type == ENEMY) {
+		wrappedMutexLock(&p->mutex);
+		if(playerCollision(b, p) && p->state == GAME) {
+			b->isAlive = false;
+			if(p->lives == 0) {
+				p->state = GAMEOVER;
+			}
+			else {
+				p->state = DEAD;
+			}
+			p->lives--;
+		}
+		wrappedMutexUnlock(&p->mutex);
+	}
+	return NULL;
+}
+
+bool playerCollision(bullet* b, player* p) {
+	if(b->row < SHIP_HEIGHT + p->row &&
+		b->row > p->row &&
+		b->col < SHIP_WIDTH + p->col &&
+		b->col >= p->col) {
+		return true;
+	}
+	
+	return false;
+}
+
+//not thread safe
+bool enemyCollision(bullet* b, segment* s) {
+	if(abs(b->row - s->row) == 0) {
+		if(abs(b->col - s->col) <= ENEMY_WIDTH) {
+			return true;
+		}
+	}
+	return false;
+}
+
+static int getLength(enemy* e) {
+	int length = 0;
+	segment* current = e->head;
+	while(current != NULL) {
+		length++;
+		current = current->next;
+	}
+	return length;
+}
+
+//not thread safe
+hit* createHit(enemy* e, segment* s, segment* prev) {
+	hit* h = malloc(sizeof(hit));
+	h->enemyHit = e;
+	h->segmentHit = s;
+	h->prevSegment = prev;
+	return h;
+}
+
+enemy* splitEnemy(hit* h) {
+	//make current enemy shorter
+	wrappedMutexLock(&h->enemyHit->mutex);
+
+	segment* newHead = NULL;
+	if(h->prevSegment == NULL) {
+		h->enemyHit->tail = h->segmentHit;
+		newHead = h->segmentHit->next;	
+		h->segmentHit->next = NULL;
+	}
+	else {
+		h->enemyHit->tail = h->prevSegment;
+		newHead = h->segmentHit;
+		h->prevSegment->next = NULL;
+	}
+	h->enemyHit->length = getLength(h->enemyHit);
+
+	//create new enemy and return it
+	enemy* e = malloc(sizeof(enemy));
+	e->head = newHead;
+	e->tail = h->enemyHit->tail;
+	e->length = getLength(e);
+	e->isAlive = true;
+	e->isJoined = false;
+	e->animTile = 0;
+	e->ticks = h->enemyHit->ticks;
+	wrappedMutexInit(&e->mutex, NULL);
+	wrappedPthreadCreate(&e->thread, NULL, runEnemy, (void*)e);
+	
+	//set original enemy to faster speed
+	h->enemyHit->ticks--;
+	wrappedMutexUnlock(&h->enemyHit->mutex);
+	
+	return e;
+}
+
+void moveEnemy(enemy* e) {
+	int i;
+	segment* s = e->head;
+	for(i=0; i<e->length; i++) {
+		if(s->onScreen) {
+			//check to see if segment has hit a wall
+			//let animation overlap into wall by half the
+			//width of the enemy
+			if(s->col < LEFT_GAME_BOUND - ENEMY_WIDTH/2) {
+				s->row++;
+				s->direction = RIGHT;
+			}
+			else if(s->col > RIGHT_GAME_BOUND - ENEMY_WIDTH/2) {
+				s->row++;
+				s->direction = LEFT;
+			}
+			//if enemy is at the bottom of the screen, do not move down one row
+			if(s->row >= UPPER_PLAYER_BOUND - ENEMY_HEIGHT) {
+				s->row--;
+			}
+		}
+
+		//move segment according to its direction
+		if(s->direction == RIGHT) {
+			s->col++;
+		}
+		else {
+			s->col--;
+		}
+
+		if(!s->onScreen && s->col <= RIGHT_GAME_BOUND - ENEMY_WIDTH) {
+			s->onScreen = true;
+		}
+		s = s->next;
+	}
+}
+
+void nextEnemyAnim(enemy* e) {
+	e->animTile++;
+	e->animTile %= ENEMY_HEAD_TILES;
+}
+
+void drawEnemy(enemy* e) {
+	wrappedMutexLock(&screenMutex);
+	consoleClearImage(e->head->prevRow, e->head->prevCol, ENEMY_HEIGHT, ENEMY_WIDTH);
+	consoleDrawImage(e->head->row, e->head->col, ENEMY_HEAD[e->animTile], ENEMY_HEIGHT);
+	
+	drawEnemySegments(e);
+	wrappedMutexUnlock(&screenMutex);
+
+	e->head->prevRow = e->head->row;
+	e->head->prevCol = e->head->col;
+}
+
+//not thread safe
+void drawEnemySegments(enemy* e) {
+	int i;
+	//do not print the head
+	segment* s = e->head->next;
+	for(i=1; i<e->length; i++) {
+		consoleClearImage(s->prevRow, s->prevCol, ENEMY_HEIGHT, ENEMY_WIDTH);
+		consoleDrawImage(s->row, s->col, ENEMY_BODY, ENEMY_HEIGHT);
+		
+		s->prevRow = s->row;
+		s->prevCol = s->col;
+		s = s->next;
+	}
+}
+
+enemy* spawnEnemy(int length) {
+	enemy* e = malloc(sizeof(enemy));
+
+	e->length = 0;
+	e->isAlive = true;
+	e->animTile = 0;
+	e->ticks = ENEMY_TICKS;
+	e->isJoined = false;
+
+	int i;
+	for(i=0; i<length; i++) {
+		addSegment(e);
+	}
+
+	wrappedMutexInit(&e->mutex, NULL);
+	wrappedMutexLock(&e->mutex);
+	wrappedPthreadCreate(&e->thread, NULL, runEnemy, (void*)e);
+	wrappedMutexUnlock(&e->mutex);
+	
+	return e;
+}
+
+void addSegment(enemy* e) {
+	segment* s = malloc(sizeof(segment));
+	if(e->length == 0) {
+		s->row = UPPER_GAME_BOUND;
+		s->col = RIGHT_GAME_BOUND;
+		e->head = s;
+		e->tail = s;
+	}
+	else {
+		s->row = e->tail->row;
+		s->col = e->tail->col + ENEMY_WIDTH;
+		e->tail->next = s;
+		e->tail = s;
+	}
+	s->onScreen = false;
+	s->next = NULL;
+	s->prevRow = s->row;
+	s->prevCol = s->col;
+	s->direction = LEFT;
+	e->length++;
+}
+//gameglobals.c
+//holds all of the global variables, mutexes, and threads for the game
+#include "gameglobals.h"
+
+#include "console.h"
+#include "threadwrappers.h"
+
+pthread_mutex_t screenMutex;
+pthread_mutex_t gameOverMutex;
+pthread_mutex_t randomMutex;
+pthread_mutex_t bulletListMutex;
+pthread_mutex_t enemyListMutex;
+pthread_mutex_t scoreMutex;
+
+pthread_cond_t gameOverCond;
+
+pthread_t screenThread;
+pthread_t keyboardThread;
+pthread_t spawnerThread;
+pthread_t cleanupThread;
+
+bulletList* bList;
+enemyList* eList;
+player* p;
+
+bool gameOver = false;
+int score;
+
+char *GAME_BOARD[] = {
+"Score:          Lives:",
+"=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-centipiede!=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"................................................................................",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+""};
+
+bool isGameOver() {
+	wrappedMutexLock(&gameOverMutex);
+	if(gameOver) {
+		wrappedMutexUnlock(&gameOverMutex);
+		return true;
+	}
+	wrappedMutexUnlock(&gameOverMutex);
+	return false;
+}
+
+//if called, set gameover = true and signal the gameOverCond
+void endGame() {
+	wrappedMutexLock(&gameOverMutex);	
+	wrappedCondSignal(&gameOverCond);
+	gameOver = true;
+	wrappedMutexUnlock(&gameOverMutex);
+}
+//keyboard.c
+//holds all the functions to run the keyboard thread
+#include <curses.h>
+#include <sys/select.h>
+
+#include "keyboard.h"
+#include "player.h"
+#include "centipede.h"
+#include "threadwrappers.h"
+#include "gameglobals.h"
+#include "console.h"
+
+void* runKeyboard(void* data) {
+	player* p = (player*)data;
+	
+	while(true) {
+		char c;
+		//if gameover exit thread
+		if(isGameOver()) {
+			pthread_exit(NULL);
+		}
+		wrappedMutexLock(&screenMutex);
+		//if keyboard hit, get the character hit and do something with it
+		if(kbhit()) {
+			c = getch();
+			wrappedMutexLock(&p->mutex);
+			if(p->state == GAME) {
+				wrappedMutexUnlock(&p->mutex);
+				//up left down right shoot quit
+				switch(c) {
+					case 'w':
+						movePlayer(p, -1, 0);
+						break;
+					case 'a':
+						movePlayer(p, 0, -1);
+						break;
+					case 's':
+						movePlayer(p, 1, 0);
+						break;
+					case 'd':
+						movePlayer(p, 0, 1);
+						break;
+					case ' ':
+						shootBullet(p);
+						wrappedMutexLock(&scoreMutex);
+						score++;
+						wrappedMutexUnlock(&scoreMutex);
+						break;
+					case 'q':
+						putString(QUIT_STR, MSG_ROW, MSG_COL, QUIT_STR_LEN);
+						wrappedMutexUnlock(&screenMutex);
+						endGame();
+						//if quit show message and exit thread
+						pthread_exit(NULL);
+				}
+				//flush any exta input
+				flushinp();
+			}
+			else {
+				wrappedMutexUnlock(&p->mutex);
+			}
+		}		
+		wrappedMutexUnlock(&screenMutex);
+	}
+}
+
+int kbhit() {
+	//check to see if there is any input available using select
+	struct timeval tv = { 0L, 0L };
+	fd_set fds;
+	FD_ZERO(&fds);
+	FD_SET(0, &fds);
+	return select(1, &fds, NULL, NULL, &tv) > 0;
+}
+//list.c
+//all of the functions to work with bulletLists and enemyLists
+#include <stdlib.h>
+#include "list.h"
+#include "threadwrappers.h"
+#include "gameglobals.h"
+
+bulletList* mallocBulletList() {
+	bulletList* bl = malloc(sizeof(bulletList));
+	bl->length = 0;
+	return bl;
+}
+
+void addBullet(bulletList* bl, bullet* b) {
+	bulletNode* node = createBulletNode(b);
+	
+	wrappedMutexLock(&bulletListMutex);	
+	if(bl->length == 0) {
+		bl->head = node;
+		bl->tail = node;
+	}
+	else {
+		bl->tail->next = node;
+		bl->tail = node;
+	}
+	bl->length++;
+	wrappedMutexUnlock(&bulletListMutex);	
+}
+
+bulletNode* createBulletNode(bullet* b) {
+	bulletNode* node = malloc(sizeof(bulletNode));
+	node->payload = b;
+	node->next = NULL;
+	return node;
+}
+
+void freeBulletList(bulletList* bl) {
+	wrappedMutexLock(&bulletListMutex);	
+	bulletNode* node = bl->head;
+	int i;
+	for(i=0; i<bl->length; i++) {
+		free(node->payload);
+		
+		bulletNode* toFree = node;
+		node = node->next;
+		free(toFree);
+	}
+	wrappedMutexUnlock(&bulletListMutex);
+}
+
+void joinBulletList(bulletList* bl) {
+	wrappedMutexLock(&bulletListMutex);	
+	bulletNode* node = bl->head;
+	int i;
+	for(i=0; i<bl->length; i++) {
+		wrappedMutexLock(&node->payload->mutex);
+		if(!node->payload->isAlive && !node->payload->isJoined) {
+			node->payload->isJoined = true;
+			wrappedPthreadJoin(node->payload->thread, NULL);
+			wrappedMutexUnlock(&node->payload->mutex);
+		}
+		else wrappedMutexUnlock(&node->payload->mutex);	
+		node = node->next;
+	}
+	wrappedMutexUnlock(&bulletListMutex);	
+}
+
+enemyList* mallocEnemyList() {
+	enemyList* el = malloc(sizeof(enemyList));
+	el->length = 0;
+	el->liveEnemies = 0;
+	return el;
+}
+
+void addEnemy(enemyList* el, enemy* e) {
+	enemyNode* node = createEnemyNode(e);
+	
+	wrappedMutexLock(&enemyListMutex);	
+	if(el->length == 0) {
+		el->head = node;
+		el->tail = node;
+	}
+	else {
+		el->tail->next = node;
+		el->tail = node;
+	}
+	el->length++;
+	el->liveEnemies++;
+	wrappedMutexUnlock(&enemyListMutex);	
+}
+
+enemyNode* createEnemyNode(enemy* e) {
+	enemyNode* node = malloc(sizeof(enemyNode));
+	node->payload = e;
+	node->next = NULL;
+	return node;
+}
+
+static void freeEnemy(enemy* e) {
+	segment* s = e->head;
+	int i;
+	for(i=0; i<e->length; i++) {
+		segment* toFree = s;
+		s = s->next;
+		free(toFree);
+	}
+	free(e);
+}
+
+void freeEnemyList(enemyList* el) {
+	wrappedMutexLock(&enemyListMutex);	
+	enemyNode* node = el->head;
+	int i;
+	for(i=0; i<el->length; i++) {
+		freeEnemy(node->payload);
+		
+		enemyNode* toFree = node;
+		node = node->next;
+		free(toFree);
+	}
+	wrappedMutexUnlock(&enemyListMutex);
+}
+
+void joinEnemyList(enemyList* el) {
+	wrappedMutexLock(&enemyListMutex);	
+	enemyNode* node = el->head;
+	int i;
+	for(i=0; i<el->length; i++) {
+		wrappedMutexLock(&node->payload->mutex);
+		if(!node->payload->isAlive && !node->payload->isJoined) {
+			node->payload->isJoined = true;
+			el->liveEnemies--;
+			wrappedPthreadJoin(node->payload->thread, NULL);
+			wrappedMutexUnlock(&node->payload->mutex);
+		}
+		else wrappedMutexUnlock(&node->payload->mutex);	
+		node = node->next;
+	}
+	wrappedMutexUnlock(&enemyListMutex);	
+}
+//main.c
+//the main function
+#include <stdio.h>
+#include "centipede.h" 
+
+int main(int argc, char**argv) 
+{
+	centipedeRun();
+	printf("done!\n");
+	return 0;
+}
+//player.c
+//contains all the functions to run the player thread
+#include <stdlib.h>
+#include "player.h"
+#include "threadwrappers.h"
+#include "console.h"
+#include "gameglobals.h"
+#include "bullet.h"
+
+//how fast the player moves
+#define PLAYER_TICKS 10
+
+//the ship animation
+char* SHIP[SHIP_ANIM_TILES][SHIP_HEIGHT] = {
+{
+	"/-\\",
+	"o  ",
+	"  o"
+},
+{
+	"/-\\",
+	"  o",
+	"o  "
+}};
+
+void shootBullet(player* p) {
+	//align the bullet with the front-middle of the ship
+	int bulletRow = p->row - 1;
+	int bulletCol = p->col + SHIP_WIDTH / 2;
+	
+	//create the new bullet
+	spawnBullet(bulletRow, bulletCol, PLAYER);
+}
+
+void* runPlayer(void* data) {
+	player* p = (player*)data;
+
+	while(true) {
+		wrappedMutexLock(&p->mutex);
+		//if player is in game state, draw player and swith animation
+		if(p->state == GAME) {
+			wrappedMutexUnlock(&p->mutex);
+			drawPlayer(p);
+			nextPlayerAnim(p);
+		}
+		//if player is dead, move ship back to start and sleep to give time for reset
+		else if(p->state == DEAD) {
+			wrappedMutexUnlock(&p->mutex);
+			wrappedMutexLock(&screenMutex);
+			consoleDrawImage(0, 0, GAME_BOARD, LOWER_GAME_BOUND);
+			wrappedMutexUnlock(&screenMutex);
+			sleepTicks(DEAD_SLEEP);
+			newPlayer(p);
+		}
+		//if gameover, put a gameover message on screen and call endGame()
+		else {//gameover
+			wrappedMutexUnlock(&p->mutex);
+			wrappedMutexLock(&screenMutex);
+			putString(GAME_OVER_STR, MSG_ROW, MSG_COL, QUIT_STR_LEN);
+			wrappedMutexUnlock(&screenMutex);	
+			endGame();
+		}
+		//if the game is over, exit the player thread
+		if(isGameOver()) {
+			pthread_exit(NULL);
+		}
+		
+		sleepTicks(PLAYER_TICKS);		
+	}
+}
+
+void nextPlayerAnim(player* p) {
+	wrappedMutexLock(&p->mutex);
+	//increment player tile # 
+	//but make sure it does not exceed the max amount of tiles
+	p->animTile++;
+	p->animTile %= SHIP_ANIM_TILES;
+	wrappedMutexUnlock(&p->mutex);
+}
+
+void drawPlayer(player* p) {
+	wrappedMutexLock(&screenMutex);
+	wrappedMutexLock(&p->mutex);
+	
+	//clear and draw player
+	consoleClearImage(p->prevRow, p->prevCol, SHIP_HEIGHT, SHIP_WIDTH);
+	consoleDrawImage(p->row, p->col, SHIP[p->animTile], SHIP_HEIGHT);
+	wrappedMutexUnlock(&screenMutex);
+	
+	//set the previous player position to where it was drawn
+	//this is so the next time it is run, it will be cleared
+	p->prevRow = p->row;
+	p->prevCol = p->col;
+	wrappedMutexUnlock(&p->mutex);
+}
+
+void movePlayer(player* p, int dRow, int dCol) {
+	wrappedMutexLock(&p->mutex);
+	int newRow = p->row + dRow;
+	int newCol = p->col + dCol;
+	wrappedMutexUnlock(&p->mutex);
+	
+	//check to see if new position is outside of player area
+	//if so, return from function and do not move
+	if(newRow + SHIP_HEIGHT > LOWER_GAME_BOUND) return;
+	if(newRow < UPPER_PLAYER_BOUND) return;
+	if(newCol + SHIP_WIDTH > RIGHT_GAME_BOUND) return;
+	if(newCol < LEFT_GAME_BOUND) return;
+	
+	//else move to new position
+	wrappedMutexLock(&p->mutex);
+	p->row = newRow;
+	p->col = newCol;
+	wrappedMutexUnlock(&p->mutex);
+}
+
+void newPlayer(player* p) {	
+	//set player back to original position
+	wrappedMutexLock(&p->mutex);
+	p->col = p->startCol;
+	p->row = p->startRow;
+	p->animTile = 0;
+	//set state back to game
+	p->state = GAME;
+	wrappedMutexUnlock(&p->mutex);
+}
+
+player* spawnPlayer(int startRow, int startCol, int lives) {
+	//create player
+	player* p = malloc(sizeof(player));
+	p->startRow = startRow;
+	p->startCol = startCol;
+	p->lives = lives;
+	p->running = true;
+	p->prevRow = startRow;
+	p->prevCol = startCol;
+	wrappedMutexInit(&(p->mutex), NULL);
+	wrappedPthreadCreate(&(p->thread), NULL, runPlayer, (void*)p);
+	newPlayer(p);
+	return p;
+}
+//threadwrappers.c
+//all the wrapper functions for thread and mutex functionality
+#include <errno.h>
+#include <stdio.h>
+#include "threadwrappers.h"
+
+int statusCheck(int s) {
+	if ((errno = s) != 0) {
+		perror(NULL);
+	}
+	return s;
+}
+
+int wrappedPthreadCreate(pthread_t* thread, const pthread_attr_t* attr, void* (*start_routine)(void *), void* arg) {
+	return statusCheck(pthread_create(thread, attr, start_routine, arg));
+}
+
+int wrappedPthreadJoin(pthread_t thread, void** retval) {
+	return statusCheck(pthread_join(thread, retval));
+}
+
+int wrappedCondSignal(pthread_cond_t* cond) {
+	return statusCheck(pthread_cond_signal(cond));
+}
+
+int wrappedCondWait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
+	return statusCheck(pthread_cond_wait(cond, mutex));
+}
+
+int wrappedMutexLock(pthread_mutex_t* mutex) {
+	return statusCheck(pthread_mutex_lock(mutex));
+}
+
+int wrappedMutexTrylock(pthread_mutex_t* mutex) {
+	return statusCheck(pthread_mutex_trylock(mutex));
+}
+
+int wrappedMutexUnlock(pthread_mutex_t* mutex) {
+	return statusCheck(pthread_mutex_unlock(mutex));
+}
+
+int wrappedMutexInit(pthread_mutex_t* mutex,  const  pthread_mutexattr_t* mutexattr) {
+	return statusCheck(pthread_mutex_init(mutex, mutexattr));
+}
+
+
