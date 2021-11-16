@@ -2,6 +2,5 @@
 #define KEYBOARD_H
 
 int kbhit();
-void endGame();
 void* runKeyboard(void* data);
 #endif

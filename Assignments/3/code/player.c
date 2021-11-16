@@ -3,11 +3,8 @@
 #include "threadwrappers.h"
 #include "console.h"
 #include "gameglobals.h"
-#include "centipede.h"
 #include "bullet.h"
 
-#define START_COL 20
-#define START_ROW 38
 #define PLAYER_TICKS 10
 
 char* SHIP[SHIP_ANIM_TILES][SHIP_HEIGHT] = {
@@ -23,9 +20,11 @@ char* SHIP[SHIP_ANIM_TILES][SHIP_HEIGHT] = {
 }};
 
 void shootBullet(player* p) {
+	//align the bullet with the front-middle of the ship
 	int bulletRow = p->row - 1;
-	//align the bullet to the front of the ship
 	int bulletCol = p->col + SHIP_WIDTH / 2;
+	
+	//create the new bullet
 	spawnBullet(bulletRow, bulletCol, PLAYER);
 }
 
@@ -33,12 +32,31 @@ void* runPlayer(void* data) {
 	player* p = (player*)data;
 
 	while(true) {
-		
-		//draw the player and switch to the next animation tile
-		drawPlayer(p);
-		nextPlayerAnim(p);
-		
-		//if the game is over, free the player memory
+		wrappedMutexLock(&p->mutex);
+		//if player is in game state, draw player and swith animation
+		if(p->state == GAME) {
+			wrappedMutexUnlock(&p->mutex);
+			drawPlayer(p);
+			nextPlayerAnim(p);
+		}
+		//if player is dead, move ship back to start and sleep to give time for reset
+		else if(p->state == DEAD) {
+			wrappedMutexUnlock(&p->mutex);
+			wrappedMutexLock(&screenMutex);
+			consoleDrawImage(0, 0, GAME_BOARD, LOWER_GAME_BOUND);
+			wrappedMutexUnlock(&screenMutex);
+			sleepTicks(DEAD_SLEEP);
+			newPlayer(p);
+		}
+		//if gameover, put a gameover message on screen and call endGame()
+		else {//gameover
+			wrappedMutexUnlock(&p->mutex);
+			wrappedMutexLock(&screenMutex);
+			putString(GAME_OVER_STR, MSG_ROW, MSG_COL, QUIT_STR_LEN);
+			wrappedMutexUnlock(&screenMutex);	
+			endGame();
+		}
+		//if the game is over, exit the player thread
 		if(isGameOver()) {
 			pthread_exit(NULL);
 		}
@@ -63,8 +81,8 @@ void drawPlayer(player* p) {
 	//clear and draw player
 	consoleClearImage(p->prevRow, p->prevCol, SHIP_HEIGHT, SHIP_WIDTH);
 	consoleDrawImage(p->row, p->col, SHIP[p->animTile], SHIP_HEIGHT);
-	
 	wrappedMutexUnlock(&screenMutex);
+	
 	//set the previous player position to where it was drawn
 	//this is so the next time it is run, it will be cleared
 	p->prevRow = p->row;
@@ -93,15 +111,18 @@ void movePlayer(player* p, int dRow, int dCol) {
 }
 
 void newPlayer(player* p) {	
+	//set player back to original position
 	wrappedMutexLock(&p->mutex);
 	p->col = p->startCol;
 	p->row = p->startRow;
 	p->animTile = 0;
+	//set state back to game
 	p->state = GAME;
 	wrappedMutexUnlock(&p->mutex);
 }
 
 player* spawnPlayer(int startRow, int startCol, int lives) {
+	//create player
 	player* p = malloc(sizeof(player));
 	p->startRow = startRow;
 	p->startCol = startCol;

@@ -2,11 +2,10 @@
 #include "bullet.h"
 #include "console.h"
 #include "threadwrappers.h"
-#include "centipede.h"
 #include "gameglobals.h"
 #include "list.h"
 
-#define BULLET_TICKS 5
+#define BULLET_TICKS 10
 
 char* BULLET_SPRITE[] = { "*" };
 
@@ -19,7 +18,6 @@ static bool isInBounds(bullet* b) {
 
 static void setState(bullet* b) {
 	hit* h;
-	wrappedMutexLock(&b->mutex);
 	if(isGameOver()) {
 		b->isAlive = false;
 	}
@@ -31,44 +29,48 @@ static void setState(bullet* b) {
 		addEnemy(eList, splitEnemy(h));
 		free(h);
 	}
-	wrappedMutexUnlock(&b->mutex);
+	wrappedMutexLock(&p->mutex);
+	if(p->state == DEAD) {
+		b->isAlive = false;
+	}
+	wrappedMutexUnlock(&p->mutex);
 }
 
 void* runBullet(void* data) {
 	bullet* b = (bullet*)data;
 
 	while(true) {
-		setState(b);
 		wrappedMutexLock(&b->mutex);
+		setState(b);
 		if(!(b->isAlive)) {
-			wrappedMutexUnlock(&b->mutex);
 			clearBullet(b);
+			wrappedMutexUnlock(&b->mutex);
 			pthread_exit(NULL);
 		}
-		wrappedMutexUnlock(&b->mutex);
 		drawBullet(b);
 		moveBullet(b);
+		wrappedMutexUnlock(&b->mutex);
 		sleepTicks(BULLET_TICKS);
 	}
 }
 
 
 void clearBullet(bullet* b) {
-	wrappedMutexLock(&b->mutex);
 	b->row = -1;
-	wrappedMutexUnlock(&b->mutex);
 	drawBullet(b);
 }
 
 void moveBullet(bullet* b) {
-	wrappedMutexLock(&b->mutex);
-	b->row += b->velocity;
-	wrappedMutexUnlock(&b->mutex);
+	if(b->type == PLAYER) {
+		b->row += b->velocity;
+	}
+	else if(b->type == ENEMY) {
+		b->row += b->velocity;
+	}
 }
 
 void drawBullet(bullet* b) {
 	wrappedMutexLock(&screenMutex);
-	wrappedMutexLock(&b->mutex);
 	//clear the previous image (bullet size is 1x1)
 	consoleClearImage(b->prevRow, b->col, 1, 1);
 	//draw bullet
@@ -76,7 +78,6 @@ void drawBullet(bullet* b) {
 	//set prevRow to the row that was just drawn
 	b->prevRow = b->row;
 	wrappedMutexUnlock(&screenMutex);
-	wrappedMutexUnlock(&b->mutex);
 }
 
 bullet* spawnBullet(int startRow, int startCol, bulletType type) {
@@ -88,12 +89,13 @@ bullet* spawnBullet(int startRow, int startCol, bulletType type) {
 	b->prevRow = b->row;
 	b->type = type;
 	b->isAlive = true;
-	
-	switch(b->type) {
-		case PLAYER:
-			b->velocity = 1;
-		case ENEMY:
-			b->velocity = -1;
+	b->isJoined = false;
+
+	if(b->type == PLAYER) {
+		b->velocity = -1;
+	}
+	else if(b->type == ENEMY) {
+		b->velocity = 1;
 	}
 	
 	wrappedMutexInit(&b->mutex, NULL);

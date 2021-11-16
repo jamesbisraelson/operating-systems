@@ -8,37 +8,51 @@
 #include "gameglobals.h"
 #include "console.h"
 
-
 void* runKeyboard(void* data) {
 	player* p = (player*)data;
 	
 	while(true) {
 		char c;
-		wrappedMutexLock(&screenMutex);
-		if(kbhit() && p->state == GAME) {
-			c = getch();
-			switch(c) {
-				case 'w':
-					movePlayer(p, -1, 0);
-					break;
-				case 'a':
-					movePlayer(p, 0, -1);
-					break;
-				case 's':
-					movePlayer(p, 1, 0);
-					break;
-				case 'd':
-					movePlayer(p, 0, 1);
-					break;
-				case ' ':
-					shootBullet(p);
-					break;
-				case 'q':
-					wrappedMutexUnlock(&screenMutex);
-					endGame();
-			}
-			flushinp();
+		if(isGameOver()) {
+			pthread_exit(NULL);
 		}
+		wrappedMutexLock(&screenMutex);
+		if(kbhit()) {
+			c = getch();
+			wrappedMutexLock(&p->mutex);
+			if(p->state == GAME) {
+				wrappedMutexUnlock(&p->mutex);
+				switch(c) {
+					case 'w':
+						movePlayer(p, -1, 0);
+						break;
+					case 'a':
+						movePlayer(p, 0, -1);
+						break;
+					case 's':
+						movePlayer(p, 1, 0);
+						break;
+					case 'd':
+						movePlayer(p, 0, 1);
+						break;
+					case ' ':
+						shootBullet(p);
+						wrappedMutexLock(&scoreMutex);
+						score++;
+						wrappedMutexUnlock(&scoreMutex);
+						break;
+					case 'q':
+						putString(QUIT_STR, MSG_ROW, MSG_COL, QUIT_STR_LEN);
+						wrappedMutexUnlock(&screenMutex);
+						endGame();
+						pthread_exit(NULL);
+				}
+				flushinp();
+			}
+			else {
+				wrappedMutexUnlock(&p->mutex);
+			}
+		}		
 		wrappedMutexUnlock(&screenMutex);
 	}
 }
@@ -49,12 +63,4 @@ int kbhit() {
 	FD_ZERO(&fds);
 	FD_SET(0, &fds);
 	return select(1, &fds, NULL, NULL, &tv) > 0;
-}
-
-void endGame() {
-	wrappedMutexLock(&gameOverMutex);	
-	wrappedCondSignal(&gameOverCond);
-	gameOver = true;
-	wrappedMutexUnlock(&gameOverMutex);
-	pthread_exit(NULL);
 }

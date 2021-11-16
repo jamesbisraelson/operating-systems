@@ -24,16 +24,19 @@ typedef struct enemy_list {
 	enemyNode* head;
 	enemyNode* tail;
 	int length;
+	int liveEnemies;
 } enemyList;
 
 bulletNode* createBulletNode(bullet* b);
 bulletList* mallocBulletList();
 void addBullet(bulletList* bl, bullet* b);
-void freeAndJoinBulletList(bulletList* bl);
+void freeBulletList(bulletList* bl);
+void joinBulletList(bulletList* bl);
 
 enemyNode* createEnemyNode(enemy* e);
 enemyList* mallocEnemyList();
 void addEnemy(enemyList* el, enemy* e);
-void freeAndJoinEnemyList(enemyList* el);
+void freeEnemyList(enemyList* el);
+void joinEnemyList(enemyList* el);
 
 #endif

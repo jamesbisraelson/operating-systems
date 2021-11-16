@@ -15,6 +15,7 @@ typedef struct bullet_struct {
 	int prevRow;
 	int velocity;
 	bool isAlive;
+	bool isJoined;
 	bulletType type;
 	pthread_t thread;
 	pthread_mutex_t mutex;

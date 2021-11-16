@@ -32,19 +32,33 @@ bulletNode* createBulletNode(bullet* b) {
 	return node;
 }
 
-void freeAndJoinBulletList(bulletList* bl) {
+void freeBulletList(bulletList* bl) {
 	wrappedMutexLock(&bulletListMutex);	
 	bulletNode* node = bl->head;
 	int i;
 	for(i=0; i<bl->length; i++) {
-		wrappedPthreadJoin(node->payload->thread, NULL);
 		free(node->payload);
 		
 		bulletNode* toFree = node;
 		node = node->next;
-
-		toFree->next = NULL;
 		free(toFree);
+	}
+	wrappedMutexUnlock(&bulletListMutex);
+}
+
+void joinBulletList(bulletList* bl) {
+	wrappedMutexLock(&bulletListMutex);	
+	bulletNode* node = bl->head;
+	int i;
+	for(i=0; i<bl->length; i++) {
+		wrappedMutexLock(&node->payload->mutex);
+		if(!node->payload->isAlive && !node->payload->isJoined) {
+			node->payload->isJoined = true;
+			wrappedPthreadJoin(node->payload->thread, NULL);
+			wrappedMutexUnlock(&node->payload->mutex);
+		}
+		else wrappedMutexUnlock(&node->payload->mutex);	
+		node = node->next;
 	}
 	wrappedMutexUnlock(&bulletListMutex);	
 }
@@ -52,6 +66,7 @@ void freeAndJoinBulletList(bulletList* bl) {
 enemyList* mallocEnemyList() {
 	enemyList* el = malloc(sizeof(enemyList));
 	el->length = 0;
+	el->liveEnemies = 0;
 	return el;
 }
 
@@ -68,6 +83,7 @@ void addEnemy(enemyList* el, enemy* e) {
 		el->tail = node;
 	}
 	el->length++;
+	el->liveEnemies++;
 	wrappedMutexUnlock(&enemyListMutex);	
 }
 
@@ -78,8 +94,7 @@ enemyNode* createEnemyNode(enemy* e) {
 	return node;
 }
 
-static void freeAndJoinEnemy(enemy* e) {
-	wrappedMutexLock(&e->mutex);
+static void freeEnemy(enemy* e) {
 	segment* s = e->head;
 	int i;
 	for(i=0; i<e->length; i++) {
@@ -87,23 +102,37 @@ static void freeAndJoinEnemy(enemy* e) {
 		s = s->next;
 		free(toFree);
 	}
-	wrappedMutexUnlock(&e->mutex);
-	wrappedPthreadJoin(e->thread, NULL);
 	free(e);
 }
 
-void freeAndJoinEnemyList(enemyList* el) {
+void freeEnemyList(enemyList* el) {
 	wrappedMutexLock(&enemyListMutex);	
 	enemyNode* node = el->head;
 	int i;
 	for(i=0; i<el->length; i++) {
-		freeAndJoinEnemy(node->payload);
+		freeEnemy(node->payload);
 		
 		enemyNode* toFree = node;
 		node = node->next;
-
-		toFree->next = NULL;
 		free(toFree);
+	}
+	wrappedMutexUnlock(&enemyListMutex);
+}
+
+void joinEnemyList(enemyList* el) {
+	wrappedMutexLock(&enemyListMutex);	
+	enemyNode* node = el->head;
+	int i;
+	for(i=0; i<el->length; i++) {
+		wrappedMutexLock(&node->payload->mutex);
+		if(!node->payload->isAlive && !node->payload->isJoined) {
+			node->payload->isJoined = true;
+			el->liveEnemies--;
+			wrappedPthreadJoin(node->payload->thread, NULL);
+			wrappedMutexUnlock(&node->payload->mutex);
+		}
+		else wrappedMutexUnlock(&node->payload->mutex);	
+		node = node->next;
 	}
 	wrappedMutexUnlock(&enemyListMutex);	
 }

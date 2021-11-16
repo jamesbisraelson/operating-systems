@@ -7,6 +7,6 @@
 
 void centipedeRun();
 void* screenRefresh(void* dummy);
-bool isGameOver();
+void* runCleanup(void* dummy);
 
 #endif

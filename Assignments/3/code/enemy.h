@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include "bullet.h"
+#include "player.h"
 
 #define ENEMY_HEAD_TILES 12
 #define ENEMY_HEIGHT 1
@@ -24,6 +25,7 @@ typedef struct enemy_struct {
 	segment* tail;
 	int length;
 	bool isAlive;
+	bool isJoined;
 	int animTile;
 	int ticks;
 	pthread_t thread;
@@ -39,8 +41,8 @@ typedef struct hit_struct {
 hit* createHit(enemy* e, segment* s, segment* prev);
 hit* checkHit(bullet* b);
 enemy* splitEnemy(hit* h);
-bool collision(bullet* b, segment* s);
-
+bool enemyCollision(bullet* b, segment* s);
+bool playerCollision(bullet* b, player* p);
 void moveEnemy(enemy* e);
 void drawEnemy(enemy* e);
 void drawEnemySegments(enemy* e);
