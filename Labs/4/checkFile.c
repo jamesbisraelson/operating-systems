@@ -21,6 +21,6 @@ int main(int argc, char* argv[]) {
 
 	printf("file %s has inode #%d\n", argv[1], (int)data.st_ino);
 	printf("number of hard links: %d\n", (int)data.st_nlink);
-	printf("number of blocks used: %d\n", blocks);
+	printf("number of blocks used: %d\n", (int)data.st_blocks);
 	return(0);
 }
