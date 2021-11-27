@@ -59,6 +59,6 @@ struct fat32Head {
 typedef struct fat32Head fat32Head;
 
 
-fat32Head *createHead(int fd);
+fat32Head* createHead(int fd);
 
 #endif
