@@ -13,6 +13,7 @@
 #define ATTR_LONG_NAME_MASK (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID | ATTR_DIRECTORY | ATTR_ARCHIVE)
 #define FREE_DIR 0xE5
 #define FREE_AND_LAST_DIR 0x00
+#define EOC 0x0FFFFFF8
 
 //boot sector constants
 #define BS_OEMName_LENGTH 8
@@ -115,7 +116,6 @@ struct fat32Head_struct {
 #pragma pack(pop)
 typedef struct fat32Head_struct fat32Head;
 
-
 fat32Head* createHead(int fd);
 void cleanupHead(fat32Head* h);
 uint32_t getDataSectors(fat32Head* h);
@@ -125,4 +125,6 @@ uint8_t* loadCluster(fat32Head* h, uint32_t curDirClus);
 uint32_t getBytesPerCluster(fat32Head* h);
 uint16_t getBytesPerSector(fat32Head* h);
 char* getVolumeID(fat32Head* h);
+uint32_t getThisFatSecNum(fat32Head* h, uint32_t cluster);
+uint32_t getThisFatEntOffset(fat32Head* h, uint32_t cluster);
 #endif

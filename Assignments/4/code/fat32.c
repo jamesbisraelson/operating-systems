@@ -49,6 +49,16 @@ uint32_t getClusterCount(fat32Head* h) {
 	return clusterCount;
 }
 
+uint32_t getThisFatSecNum(fat32Head* h, uint32_t cluster) {
+	uint64_t fatOffset = (uint64_t)cluster * 4;
+	return h->bs->BPB_RsvdSecCnt + (uint32_t)(fatOffset / h->bs->BPB_BytesPerSec);
+}
+
+uint32_t getThisFatEntOffset(fat32Head* h, uint32_t cluster) {
+	uint64_t fatOffset = (uint64_t)cluster * 4;
+	return (uint32_t)(fatOffset % h->bs->BPB_BytesPerSec);
+}
+
 //gets the amount of byes in a cluster
 uint32_t getBytesPerCluster(fat32Head* h) {
 	return h->bs->BPB_SecPerClus * h->bs->BPB_BytesPerSec;
