@@ -20,7 +20,7 @@ shell.o: shell.c $(DEPS)
 	$(CC) -c shell.c $(CFLAGS)
 
 debug:
-	$(CC) -g $(CFILES) $(CFLAGS)
+	$(CC) -g3 $(CFILES) $(CFLAGS)
 	gdb --args a.out $(IMG)
 	rm -f a.out
 

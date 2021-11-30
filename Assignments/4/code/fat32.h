@@ -3,6 +3,17 @@
 
 #include <inttypes.h>
 
+#define ATTR_READ_ONLY 0x01
+#define ATTR_HIDDEN 0x02
+#define ATTR_SYSTEM 0x04
+#define ATTR_VOLUME_ID 0x08
+#define ATTR_DIRECTORY 0x10
+#define ATTR_ARCHIVE 0x20
+#define ATTR_LONG_NAME (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID)
+#define ATTR_LONG_NAME_MASK (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID | ATTR_DIRECTORY | ATTR_ARCHIVE)
+#define FREE_DIR 0xE5
+#define FREE_AND_LAST_DIR 0x00
+
 //boot sector constants
 #define BS_OEMName_LENGTH 8
 #define BS_VolLab_LENGTH 11
@@ -69,18 +80,6 @@ struct fsInfo_struct {
 typedef struct fsInfo_struct fsInfo;
 
 
-//the struct for the boot sector and fsinfo
-#pragma pack(push)
-#pragma pack(1)
-struct fat32Head_struct {
-	fat32BS* bs;
-	fsInfo* fsinfo;
-	int fd;
-};
-#pragma pack(pop)
-typedef struct fat32Head_struct fat32Head;
-
-
 //directory constants
 #define DIR_Reserved_LENGTH 4
 #define DIR_Name_LENGTH 11
@@ -104,10 +103,26 @@ struct fat32Dir_struct {
 typedef struct fat32Dir_struct fat32Dir;
 
 
+//the struct for the boot sector and fsinfo
+#pragma pack(push)
+#pragma pack(1)
+struct fat32Head_struct {
+	fat32BS* bs;
+	fsInfo* fsinfo;
+	int fd;
+	char* volumeID;
+};
+#pragma pack(pop)
+typedef struct fat32Head_struct fat32Head;
+
+
 fat32Head* createHead(int fd);
 void cleanupHead(fat32Head* h);
 uint32_t getDataSectors(fat32Head* h);
 uint32_t getClusterCount(fat32Head* h);
 uint32_t getFirstSectorOfCluster(fat32Head* h, uint32_t cluster);
 uint8_t* loadCluster(fat32Head* h, uint32_t curDirClus);
+uint32_t getBytesPerCluster(fat32Head* h);
+uint16_t getBytesPerSector(fat32Head* h);
+char* getVolumeID(fat32Head* h);
 #endif

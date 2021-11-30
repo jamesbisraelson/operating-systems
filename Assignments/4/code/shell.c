@@ -98,7 +98,7 @@ void printInfo(fat32Head* h) {
 	println("");
 
 	println("---- FS Info ----");
-	printf("Volume ID: TODO\n"); //comes from cluster
+	printf("Volume ID: %s\n", h->volumeID); //comes from cluster
 	printf("Version: %u.%u\n", (unsigned int)bs->BPB_FSVerHigh, (unsigned int)bs->BPB_FSVerLow);
 	printf("Reserved Sectors: %u\n", (unsigned int)bs->BPB_RsvdSecCnt);
 	printf("# of FATs: %u\n", (unsigned int)bs->BPB_NumFATs);
@@ -109,14 +109,55 @@ void printInfo(fat32Head* h) {
 
 //TODO: figure out why this doesn't work
 void doDir(fat32Head* h, uint32_t curDirClus) {
+	//read the cluster from memory
 	uint8_t* cluster = loadCluster(h, curDirClus);
+
+	//cast the cluster as a fat32Dir
 	fat32Dir* dir = (fat32Dir*)(&cluster[0]);	
-	for(int i=0; i<16; i++) {
-		if(dir->DIR_Name[0] == 0xE5) break;
-		if(dir->DIR_Name[0] == 0x00) { i=17; break; }
-		printf("%s\n", dir->DIR_Name);
+	uint32_t dirCount = getBytesPerSector(h) / sizeof(fat32Dir); 
+	
+	println("");
+	println("DIRECTORY LISTING");
+	printf("VOL_ID: %s\n", h->volumeID);
+	println("");
+
+	for(int i=0; i<dirCount; i++) {
+		//filter out long names
+		if((dir->DIR_Attr & ATTR_LONG_NAME_MASK) != ATTR_LONG_NAME) {
+			//make sure the entry is not empty
+			if(dir->DIR_Name[0] != FREE_DIR) {
+				//make sure the entry is not the last one
+				if(dir->DIR_Name[0] == FREE_AND_LAST_DIR) break;
+				//check if file
+				if((dir->DIR_Attr & (ATTR_DIRECTORY | ATTR_VOLUME_ID)) == 0x00) {
+					char* dirName = dir->DIR_Name;
+					char filename[DIR_Name_LENGTH + 1];//add 1 for the "."
+					char* saveptr = NULL;
+					
+					//this just makes the output pretty
+					strcpy(filename, strtok_r(dirName, " ", &saveptr));
+					strcat(filename, ".");
+					strcat(filename, strtok_r(NULL, " ", &saveptr));
+					printf("%-15s%10lu\n", filename, (unsigned long)dir->DIR_FileSize);
+				}
+				//check if directory
+				else if((dir->DIR_Attr & (ATTR_DIRECTORY | ATTR_VOLUME_ID)) == ATTR_DIRECTORY) {
+					char* dirName = dir->DIR_Name;
+					char filename[DIR_Name_LENGTH + 2];//add 2 for the "<" and ">"
+					char* saveptr = NULL;
+					
+					//again making it pretty
+					strcpy(filename, "<");
+					strcat(filename, strtok_r(dirName, " ", &saveptr));
+					strcat(filename, ">");
+					printf("%-15s%10lu\n", filename, (unsigned long)dir->DIR_FileSize);
+				}
+			}
+		}
 		dir++;
 	}
-	
-	printf("gay");
+	printf("---Bytes Free: %s\n", "TODO");
+	println("---DONE");
+	free(cluster);
 }
+
