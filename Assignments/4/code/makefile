@@ -6,6 +6,7 @@ CFILES=main.c fat32.c shell.c
 DEBUG=a.out
 EXE=fat32
 IMG=diskimage
+DOWNLOADS=TRAVEL.JPG FOOD.JPG STORY.TXT 1.JPG
 
 main: $(OBJS)
 	$(CC) -o $(EXE) $(OBJS) $(CFLAGS)
@@ -28,7 +29,7 @@ valgrind: main
 	valgrind -s --leak-check=full --track-origins=yes ./$(EXE) $(IMG)
 
 clean:
-	rm -f $(EXE) $(OBJS) $(DEBUG)
+	rm -f $(DOWNLOADS) $(EXE) $(OBJS) $(DEBUG)
 
 run: main
 	./$(EXE) $(IMG)

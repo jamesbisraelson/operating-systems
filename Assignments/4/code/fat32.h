@@ -127,4 +127,5 @@ uint16_t getBytesPerSector(fat32Head* h);
 char* getVolumeID(fat32Head* h);
 uint32_t getThisFatSecNum(fat32Head* h, uint32_t cluster);
 uint32_t getThisFatEntOffset(fat32Head* h, uint32_t cluster);
+void downloadFile(fat32Head* h, fat32Dir* dir, uint32_t firstCluster, char* filename);
 #endif

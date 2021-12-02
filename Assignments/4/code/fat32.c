@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include "fat32.h"
 
@@ -99,4 +100,44 @@ char* getVolumeID(fat32Head* h) {
 	}
 	free(cluster);
 	return NULL;
+}
+
+void downloadFile(fat32Head* h, fat32Dir* dir, uint32_t firstCluster, char* filename) {
+	uint32_t currentClus = firstCluster;
+	int fd_out = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	uint32_t fileSize = dir->DIR_FileSize;
+	uint32_t clusterSize = getBytesPerCluster(h);
+	uint32_t writeBuffer = clusterSize;
+
+	if(fd_out == -1) {
+		perror("open error");
+		exit(1);
+	}
+	do {
+		uint8_t* cluster = loadCluster(h, currentClus);
+
+		if(fileSize < clusterSize) {
+			writeBuffer = fileSize;
+		}
+		
+		if(write(fd_out, (void*)cluster, writeBuffer) == -1) {
+			perror("write error");
+			exit(1);
+		}
+		fileSize -= clusterSize;
+		free(cluster);
+		
+		uint32_t secByte = getThisFatSecNum(h, currentClus) * getBytesPerSector(h);
+		uint32_t entOffset = getThisFatEntOffset(h, currentClus);
+		uint32_t dword;
+		lseek(h->fd, secByte+entOffset, SEEK_SET);
+		read(h->fd, &dword, sizeof(uint32_t));	
+		currentClus = dword & 0x0FFFFFFF;
+
+	} while(currentClus < EOC);
+	if(close(fd_out) == -1) {
+		perror("close error");
+		exit(1);
+	}
+	printf("Done.\n");
 }

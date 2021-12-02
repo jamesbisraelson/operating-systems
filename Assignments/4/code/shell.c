@@ -60,7 +60,7 @@ void shellLoop(int fd) {
 			}
 		}
 		else if(strncmp(buffer, CMD_GET, strlen(CMD_GET)) == 0) {
-			//doDownload(h, curDirClus, buffer);
+			doDownload(h, curDirClus, buffer);
 		}
 		else if(strncmp(buffer, CMD_PUT, strlen(CMD_PUT)) == 0) {
 			//doUpload(h, curDirClus, buffer, bufferRaw);
@@ -114,18 +114,17 @@ void printInfo(fat32Head* h) {
 }
 
 void doDir(fat32Head* h, uint32_t curDirClus) {	
+		println("");
+		println("DIRECTORY LISTING");
+		printf("VOL_ID: %s\n", h->volumeID);
+		println("");
 	do {
 		//read the cluster from memory
 		uint8_t* cluster = loadCluster(h, curDirClus);
 	
 		//cast the cluster as a fat32Dir
 		fat32Dir* dir = (fat32Dir*)(&cluster[0]);	
-		uint32_t dirCount = getBytesPerSector(h) / sizeof(fat32Dir); 
-		
-		println("");
-		println("DIRECTORY LISTING");
-		printf("VOL_ID: %s\n", h->volumeID);
-		println("");
+		uint32_t dirCount = getBytesPerCluster(h) / sizeof(fat32Dir); 
 		
 		for(int i=0; i<dirCount; i++) {
 			//filter out long names
@@ -172,12 +171,13 @@ void doDir(fat32Head* h, uint32_t curDirClus) {
 		curDirClus = dword & 0x0FFFFFFF;
 
 	} while(curDirClus < EOC);
-	printf("---Bytes Free: %s\n", "TODO");
+	
+	uint64_t totalFreeBytes = (uint64_t)h->fsinfo->FSI_Free_Count * getBytesPerCluster(h);
+	printf("---Bytes Free: %llu\n", (unsigned long long)totalFreeBytes);
 	println("---DONE");
 }
 
 uint32_t doCD(fat32Head* h, uint32_t curDirClus, char* command) {
-
 	char* saveptr = NULL;
 	char cdDirectory[DIR_Name_LENGTH];
 	strtok_r(command, " ", &saveptr);
@@ -185,7 +185,7 @@ uint32_t doCD(fat32Head* h, uint32_t curDirClus, char* command) {
 
 	uint8_t* cluster = loadCluster(h, curDirClus);
 	fat32Dir* dir = (fat32Dir*)(&cluster[0]);	
-	uint32_t dirCount = getBytesPerSector(h) / sizeof(fat32Dir); 
+	uint32_t dirCount = getBytesPerCluster(h) / sizeof(fat32Dir); 
 	
 	for(int i=0; i<dirCount; i++) {
 		//filter out long names
@@ -206,6 +206,7 @@ uint32_t doCD(fat32Head* h, uint32_t curDirClus, char* command) {
 						if(output == 0) {
 							output = h->bs->BPB_RootClus;
 						}
+						free(cluster);
 						return output;
 					}
 				}
@@ -215,4 +216,44 @@ uint32_t doCD(fat32Head* h, uint32_t curDirClus, char* command) {
 	}
 	free(cluster);
 	return -1;
+}
+
+void doDownload(fat32Head* h, uint32_t curDirClus, char* command) {
+	char* saveptr = NULL;
+	char downDirectory[DIR_Name_LENGTH];
+	strtok_r(command, " ", &saveptr);
+	strcpy(downDirectory, strtok_r(NULL, " ", &saveptr));
+
+	uint8_t* cluster = loadCluster(h, curDirClus);
+	fat32Dir* dir = (fat32Dir*)(&cluster[0]);	
+	uint32_t dirCount = getBytesPerCluster(h) / sizeof(fat32Dir); 
+
+	for(int i=0; i<dirCount; i++) {
+		//filter out long names
+		if((dir->DIR_Attr & ATTR_LONG_NAME_MASK) != ATTR_LONG_NAME) {
+			//make sure the entry is not empty
+			if(dir->DIR_Name[0] != FREE_DIR) {
+				//make sure the entry is not the last one
+				if(dir->DIR_Name[0] == FREE_AND_LAST_DIR) break;
+				//check if file
+				if((dir->DIR_Attr & (ATTR_DIRECTORY | ATTR_VOLUME_ID)) == 0x00) {
+					char* dirName = dir->DIR_Name;
+					char filename[DIR_Name_LENGTH + 1];//add 1 for the "."
+					char* saveptr = NULL;
+					
+					//this just makes the output pretty
+					strcpy(filename, strtok_r(dirName, " ", &saveptr));
+					strcat(filename, ".");
+					strcat(filename, strtok_r(NULL, " ", &saveptr));
+					if(!strcmp(filename, downDirectory)) {
+						uint32_t firstCluster = dir->DIR_FstClusHI * 0x100 + dir->DIR_FstClusLO;
+						downloadFile(h, dir, firstCluster, filename);
+						break;
+					}
+				}
+			}
+		}
+		dir++;
+	}
+	free(cluster);
 }
