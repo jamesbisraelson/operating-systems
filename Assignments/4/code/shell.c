@@ -1,3 +1,9 @@
+/*
+ * shell.c:
+ *
+ * Holds the code for the main functions of the shell loop.
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,13 +16,14 @@
 #include "shell.h"
 #include "fat32.h"
 
+//define constants
 #define BUF_SIZE 256
 #define CMD_INFO "INFO"
 #define CMD_DIR "DIR"
 #define CMD_CD "CD"
 #define CMD_GET "GET"
-#define CMD_PUT "PUT"
 
+//the main loop for the shell of the fat32 program
 void shellLoop(int fd) {
 	int running = true;
 	uint32_t curDirClus;
@@ -43,13 +50,16 @@ void shellLoop(int fd) {
 		bufferRaw[strlen(bufferRaw)-1] = '\0'; /* cut new line */
 		for(int i=0; i < strlen(bufferRaw)+1; i++)
 			buffer[i] = toupper(bufferRaw[i]);
-	
+		
+		//print info
 		if(strncmp(buffer, CMD_INFO, strlen(CMD_INFO)) == 0) {
 			printInfo(h);
 		}
+		//print dir info
 		else if(strncmp(buffer, CMD_DIR, strlen(CMD_DIR)) == 0) {
 			doDir(h, curDirClus);	
 		}
+		//cd to a new directory
 		else if(strncmp(buffer, CMD_CD, strlen(CMD_CD)) == 0) {
 			uint32_t temp = doCD(h, curDirClus, buffer);
 			if(temp == -1) {
@@ -59,13 +69,11 @@ void shellLoop(int fd) {
 				curDirClus = temp;
 			}
 		}
+		//download a file
 		else if(strncmp(buffer, CMD_GET, strlen(CMD_GET)) == 0) {
 			doDownload(h, curDirClus, buffer);
 		}
-		else if(strncmp(buffer, CMD_PUT, strlen(CMD_PUT)) == 0) {
-			//doUpload(h, curDirClus, buffer, bufferRaw);
-			printf("Bonus marks!\n");
-		}
+		//not valid command
 		else { 
 			printf("\nCommand not found\n");
 		}
@@ -75,10 +83,12 @@ void shellLoop(int fd) {
 	cleanupHead(h);
 }
 
+//a helper function that prints the specified string on a new line
 static void println(char* string) {
 	printf("%s\n", string);
 }
 
+//prints the info about the disk image
 void printInfo(fat32Head* h) {
 	fat32BS* bs = h->bs;
 	uint64_t sizeB = (uint64_t)bs->BPB_BytesPerSec * bs->BPB_TotSec32;
@@ -113,6 +123,7 @@ void printInfo(fat32Head* h) {
 	printf("Boot Sector Backup Sector #: %u\n", (unsigned int)bs->BPB_BkBootSec);
 }
 
+//prints the info about a directory
 void doDir(fat32Head* h, uint32_t curDirClus) {	
 		println("");
 		println("DIRECTORY LISTING");
@@ -177,6 +188,7 @@ void doDir(fat32Head* h, uint32_t curDirClus) {
 	println("---DONE");
 }
 
+//returns the cluster of another directory specified in command
 uint32_t doCD(fat32Head* h, uint32_t curDirClus, char* command) {
 	char* saveptr = NULL;
 	char cdDirectory[DIR_Name_LENGTH];
@@ -201,7 +213,9 @@ uint32_t doCD(fat32Head* h, uint32_t curDirClus, char* command) {
 					saveptr = NULL;
 					
 					strcpy(filename, strtok_r(dirName, " ", &saveptr));
+					//check if directory matches
 					if(!strcmp(filename, cdDirectory)) {
+						//return the cluster number
 						uint32_t output = dir->DIR_FstClusHI * 0x100 + dir->DIR_FstClusLO;
 						if(output == 0) {
 							output = h->bs->BPB_RootClus;
@@ -218,6 +232,7 @@ uint32_t doCD(fat32Head* h, uint32_t curDirClus, char* command) {
 	return -1;
 }
 
+//downloads the file specified in command to the hard drive
 void doDownload(fat32Head* h, uint32_t curDirClus, char* command) {
 	char* saveptr = NULL;
 	char downDirectory[DIR_Name_LENGTH];
@@ -245,7 +260,9 @@ void doDownload(fat32Head* h, uint32_t curDirClus, char* command) {
 					strcpy(filename, strtok_r(dirName, " ", &saveptr));
 					strcat(filename, ".");
 					strcat(filename, strtok_r(NULL, " ", &saveptr));
+					//check if directory matches
 					if(!strcmp(filename, downDirectory)) {
+						//download file
 						uint32_t firstCluster = dir->DIR_FstClusHI * 0x100 + dir->DIR_FstClusLO;
 						downloadFile(h, dir, firstCluster, filename);
 						break;

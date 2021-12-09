@@ -1,3 +1,8 @@
+/* 
+ * fat32.h:
+ *
+ * The .h file for fat32.c. Also holds all of the structs for loading in memory from the diskimage.
+ */
 #ifndef FAT32_H
 #define FAT32_H
 
@@ -63,9 +68,11 @@ struct fat32BS_struct {
 typedef struct fat32BS_struct fat32BS;
 
 
-//boot sector constants
+//fsinfo constants
 #define FSI_Reserved1_LENGTH 480
 #define FSI_Reserved2_LENGTH 12
+
+//the struct for the FSI
 #pragma pack(push)
 #pragma pack(1)
 struct fsInfo_struct {
@@ -84,6 +91,8 @@ typedef struct fsInfo_struct fsInfo;
 //directory constants
 #define DIR_Reserved_LENGTH 4
 #define DIR_Name_LENGTH 11
+
+//the struct for the directory
 #pragma pack(push)
 #pragma pack(1)
 struct fat32Dir_struct {
@@ -103,8 +112,7 @@ struct fat32Dir_struct {
 #pragma pack(pop)
 typedef struct fat32Dir_struct fat32Dir;
 
-
-//the struct for the boot sector and fsinfo
+//the struct for the boot sector, fsinfo, volumeID, and the file descriptor for the disk image
 #pragma pack(push)
 #pragma pack(1)
 struct fat32Head_struct {
@@ -116,16 +124,42 @@ struct fat32Head_struct {
 #pragma pack(pop)
 typedef struct fat32Head_struct fat32Head;
 
+//creates a fat32Head
 fat32Head* createHead(int fd);
+
+//frees the memory for a fat32Head
 void cleanupHead(fat32Head* h);
+
+//gets the first data sector
+uint32_t getFirstDataSector(fat32Head* h);
+
+//gets the number of data sectors
 uint32_t getDataSectors(fat32Head* h);
+
+//gets the number of clusters in a sector
 uint32_t getClusterCount(fat32Head* h);
+
+//gets the first sector of a cluster
 uint32_t getFirstSectorOfCluster(fat32Head* h, uint32_t cluster);
-uint8_t* loadCluster(fat32Head* h, uint32_t curDirClus);
-uint32_t getBytesPerCluster(fat32Head* h);
-uint16_t getBytesPerSector(fat32Head* h);
-char* getVolumeID(fat32Head* h);
+
+//get the sector for a particular cluster in the fat
 uint32_t getThisFatSecNum(fat32Head* h, uint32_t cluster);
+
+//get the offset byte of the first part of data in a cluster
 uint32_t getThisFatEntOffset(fat32Head* h, uint32_t cluster);
+
+//get the number of bytes in a cluster
+uint32_t getBytesPerCluster(fat32Head* h);
+
+//get the number of bytes in a sector
+uint16_t getBytesPerSector(fat32Head* h);
+
+//load an entire cluster into memory and return a pointer to the front of it
+uint8_t* loadCluster(fat32Head* h, uint32_t curDirClus);
+
+//get the volumeID of the root directory
+char* getVolumeID(fat32Head* h);
+
+//download a file from the disk image to the hard drive
 void downloadFile(fat32Head* h, fat32Dir* dir, uint32_t firstCluster, char* filename);
 #endif

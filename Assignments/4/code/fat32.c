@@ -1,3 +1,8 @@
+/*
+ * fat32.c:
+ *
+ * all of the functions needed to read and navigate the disk image
+ */
 #define _FILE_OFFSET_BITS 64
 #include <stdlib.h>
 #include <stdio.h>
@@ -6,6 +11,7 @@
 #include <string.h>
 #include "fat32.h"
 
+//creates a fat32Head
 fat32Head* createHead(int fd) {
 	//malloc the head struct
 	fat32Head* h = malloc(sizeof(fat32Head));
@@ -22,6 +28,7 @@ fat32Head* createHead(int fd) {
 	return h;
 }
 
+//frees the memory for a fat32Head
 void cleanupHead(fat32Head* h) {
 	free(h->bs);
 	free(h->fsinfo);
@@ -29,46 +36,56 @@ void cleanupHead(fat32Head* h) {
 	free(h);
 }
 
+
+//gets the first data sector
 uint32_t getFirstDataSector(fat32Head* h) {
 	uint32_t firstDataSector = h->bs->BPB_RsvdSecCnt + (h->bs->BPB_NumFATs * h->bs->BPB_FATSz32);
 	return firstDataSector;
 }
 
-uint32_t getFirstSectorOfCluster(fat32Head* h, uint32_t cluster) {
-	uint32_t firstSectorOfCluster = ((cluster-2) * h->bs->BPB_SecPerClus) + getFirstDataSector(h);
-	return firstSectorOfCluster;
-}
-
+//gets the number of data sectors
 uint32_t getDataSectors(fat32Head* h) {
 	uint32_t dataSectors = h->bs->BPB_TotSec32 - (h->bs->BPB_RsvdSecCnt + (h->bs->BPB_NumFATs * h->bs->BPB_FATSz32));
 	return dataSectors;
 }
 
+//gets the number of clusters in a sector
 uint32_t getClusterCount(fat32Head* h) {
 	uint32_t dataSectors = getDataSectors(h);
 	uint32_t clusterCount = dataSectors / h->bs->BPB_SecPerClus;	
 	return clusterCount;
 }
 
+//gets the first sector of a cluster
+uint32_t getFirstSectorOfCluster(fat32Head* h, uint32_t cluster) {
+	uint32_t firstSectorOfCluster = ((cluster-2) * h->bs->BPB_SecPerClus) + getFirstDataSector(h);
+	return firstSectorOfCluster;
+}
+
+//get the sector for a particular cluster in the fat
 uint32_t getThisFatSecNum(fat32Head* h, uint32_t cluster) {
 	uint64_t fatOffset = (uint64_t)cluster * 4;
 	return h->bs->BPB_RsvdSecCnt + (uint32_t)(fatOffset / h->bs->BPB_BytesPerSec);
 }
 
+
+//get the offset byte of the first part of data in a cluster
 uint32_t getThisFatEntOffset(fat32Head* h, uint32_t cluster) {
 	uint64_t fatOffset = (uint64_t)cluster * 4;
 	return (uint32_t)(fatOffset % h->bs->BPB_BytesPerSec);
 }
 
-//gets the amount of byes in a cluster
+//gets the amount of bytes in a cluster
 uint32_t getBytesPerCluster(fat32Head* h) {
 	return h->bs->BPB_SecPerClus * h->bs->BPB_BytesPerSec;
 }
 
+//get the number of bytes in a sector
 uint16_t getBytesPerSector(fat32Head* h) {
 	return h->bs->BPB_BytesPerSec;
 }
 
+//load an entire cluster into memory and return a pointer to the front of it
 uint8_t* loadCluster(fat32Head* h, uint32_t curDirClus) {
 	//get the first byte of the first sector of the directory cluster and seek to it
 	uint32_t sector = getFirstSectorOfCluster(h, curDirClus);
@@ -83,6 +100,7 @@ uint8_t* loadCluster(fat32Head* h, uint32_t curDirClus) {
 	return cluster;
 }
 
+//get the volumeID of the root directory
 char* getVolumeID(fat32Head* h) {
 	uint8_t* cluster = loadCluster(h, h->bs->BPB_RootClus);
 	fat32Dir* dir = (fat32Dir*)(&cluster[0]);
@@ -102,6 +120,7 @@ char* getVolumeID(fat32Head* h) {
 	return NULL;
 }
 
+//download a file from the disk image to the hard drive
 void downloadFile(fat32Head* h, fat32Dir* dir, uint32_t firstCluster, char* filename) {
 	uint32_t currentClus = firstCluster;
 	int fd_out = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0777);
@@ -113,6 +132,7 @@ void downloadFile(fat32Head* h, fat32Dir* dir, uint32_t firstCluster, char* file
 		perror("open error");
 		exit(1);
 	}
+	//get the position of the cluster in memory, read it in, and return a pointer to the front of it
 	do {
 		uint8_t* cluster = loadCluster(h, currentClus);
 

@@ -1,3 +1,8 @@
+/*
+ * main.c:
+ *
+ * Holds the main function for the fat32 program.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -7,6 +12,7 @@
 
 #include "shell.h"
 
+//the main function for the fat32 program
 int main(int argc, char *argv[]) 
 {
 	int fd;
