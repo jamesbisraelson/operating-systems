@@ -1,1 +1,1 @@
-This is the repo for all my CS3413 assignments and labs.
+This is the repo for all my Operating systems assignments and labs.
